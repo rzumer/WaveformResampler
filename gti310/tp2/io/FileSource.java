@@ -65,12 +65,19 @@ public class FileSource {
 			/* read the number of bytes asked for, or the amount left in the
 			 * file */
 			_reader.read(buffer);
-			
 			/* return what was read */
 			return buffer;
 		} catch (IOException e) {
 			/* something went wrong, or EOF reached */
 			return null;
+		}
+	}
+	
+	public int bytesRemaining() {
+		try {
+			return _reader.available();
+		} catch (IOException e) {
+			return 0;
 		}
 	}
 }

@@ -11,11 +11,18 @@ package gti310.tp2.audio;
  * 
  * @author François Caron <francois.caron.7@ens.etsmtl.ca>
  */
-public interface AudioFilter {
-
+public abstract class AudioFilter
+{
+	AudioProperties properties;
+	
 	/**
 	 * Filter the input data.
 	 * The function should make sure the input data is valid beforehand.
 	 */
-	void process();
+	public abstract byte[] process(byte[] input);
+	
+	public void setProperties(AudioProperties properties)
+	{
+		this.properties = properties;
+	}
 }
