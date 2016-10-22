@@ -8,6 +8,6 @@ public class AudioProperties
 	
 	public int getFrameSize()
 	{
-		return SampleRate * (BitsPerSample / 8) * NumChannels;
+		return (BitsPerSample / 8) * NumChannels;
 	}
 }

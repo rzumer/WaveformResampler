@@ -61,7 +61,7 @@ public class WaveController extends AudioController
 		
 		while(fileSource.bytesRemaining() > 0)
 		{
-			bytesPopped = fileSource.pop(Math.min(fileSource.bytesRemaining(), properties.getFrameSize()));
+			bytesPopped = fileSource.pop(Math.min(fileSource.bytesRemaining(), properties.getFrameSize() * properties.SampleRate));
 			
 			byte[] bytesToPush = filter.process(bytesPopped);
 			fileSink.push(bytesToPush);
