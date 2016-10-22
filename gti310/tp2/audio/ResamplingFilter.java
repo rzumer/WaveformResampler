@@ -11,23 +11,23 @@ public class ResamplingFilter extends AudioFilter
 		return process(input, 8000); // Default output sample rate of 8000 Hz
 	}
 	
-	public byte[] process(byte[] input, int sampleRate)
+	public byte[] process(byte[] input, int outSampleRate)
 	{
-		if(sampleRate == properties.SampleRate)
+		if(outSampleRate == properties.SampleRate)
 		{
 			// No processing needed.
 			return input;
 		}
 		
-		else if(sampleRate > properties.SampleRate)
+		else if(outSampleRate > properties.SampleRate)
 		{
 			// Upsampling is not implemented.
 			throw new UnsupportedOperationException();
 		}
 		
 		// Step 1: Interpolation
-		int lcm = MathExtensions.LeastCommonMultiple(properties.SampleRate, sampleRate);
-		int padding = (lcm / properties.SampleRate) - 1;
+		int lcm = MathExtensions.LeastCommonMultiple(properties.SampleRate, outSampleRate);
+		int padding = ((lcm / properties.SampleRate) - 1) * properties.getFrameSize();
 		
 		// Stuffed input contains the initial bytes, plus the zeroes which are between each frame.
 		byte[] stuffedInput = new byte[input.length + (input.length / properties.getFrameSize() * padding) - padding];
@@ -54,7 +54,26 @@ public class ResamplingFilter extends AudioFilter
 			}
 		}
 		
-		return stuffedInput;
+		// Do the actual interpolation where needed...
+		
+		// Step 2: Decimation
+		int decimationRate = lcm / outSampleRate;
+		int outputSize = Math.round(input.length * (float)properties.SampleRate / outSampleRate);
+		byte[] decimatedInput = new byte[outputSize];
+		int decimatedInputPointer = 0;
+		
+		for(int i = 0; i < stuffedInput.length; i += decimationRate * properties.getFrameSize())
+		{
+			byte[] frame = Arrays.copyOfRange(stuffedInput, i, i + properties.getFrameSize());
+			
+			for(byte b : frame)
+			{
+				decimatedInput[decimatedInputPointer] = b;
+				decimatedInputPointer++;
+			}
+		}
+		
+		return decimatedInput;
 	}
 }
 
