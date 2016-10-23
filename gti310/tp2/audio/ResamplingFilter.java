@@ -8,24 +8,27 @@ public class ResamplingFilter extends AudioFilter
 	@Override
 	public byte[] process(byte[] input)
 	{
-		return process(input, 8000); // Default output sample rate of 8000 Hz
+		return process(input, 44100); // Default output sample rate of 8000 Hz
 	}
 	
 	public byte[] process(byte[] input, int outSampleRate)
 	{
-		if(outSampleRate == properties.SampleRate)
+		/*if(outSampleRate == properties.SampleRate)
 		{
 			// No processing needed.
 			return input;
 		}
 		
-		else if(outSampleRate > properties.SampleRate)
+		else*/ if(outSampleRate > properties.SampleRate)
 		{
 			// Upsampling is not implemented.
 			throw new UnsupportedOperationException();
 		}
 		
-		// Step 1: Interpolation
+		// Simple processing
+		// Use FIR interpolation to save CPU/Memory
+		
+		// Bit Stuffing
 		int lcm = MathExtensions.LeastCommonMultiple(properties.SampleRate, outSampleRate);
 		int padding = ((lcm / properties.SampleRate) - 1) * properties.getFrameSize();
 		
@@ -54,12 +57,50 @@ public class ResamplingFilter extends AudioFilter
 			}
 		}
 		
-		// Do the actual interpolation where needed...
+		// Linear Interpolation
+		for(int i = 0; i < stuffedInput.length; i+= properties.getFrameSize() * (padding + 1))
+		{
+			int j = i + (properties.getFrameSize() * (padding + 1));
+			
+			if(j >= stuffedInput.length)
+			{
+				j = i;
+			}
+			
+			byte[] frame = Arrays.copyOfRange(stuffedInput, i, i + properties.getFrameSize());
+			//byte[] frame2 = Arrays.copyOfRange(stuffedInput, j, j + properties.getFrameSize()); not on last frame
+			
+			if(properties.NumChannels > 1)
+			{
+				// process each channel independently
+			}
+			
+			if(properties.BitsPerSample > 8)
+			{
+				// process multibyte values
+			}
+			
+			// 8-bit monaural processing
+			short a = stuffedInput[i];
+			short b = stuffedInput[j];
+			
+			for(int k = 0; k < padding; k++)
+			{
+				int index = i + properties.getFrameSize() + k - 1;
+				if(index < stuffedInput.length)
+				{
+					stuffedInput[index] = (byte) MathExtensions.InterpolateLinear(a, b, (float) k / padding);
+				}
+			}
+		}
 		
-		// Step 2: Decimation
+		// TODO filter out samples with an amplitude above Nyquist (2 x output sample rate)
+		
+		// Decimation
 		int decimationRate = lcm / outSampleRate;
 		int outputSize = Math.round(input.length * (float)properties.SampleRate / outSampleRate);
-		byte[] decimatedInput = new byte[outputSize];
+		
+		byte[] downsampledInput = new byte[outputSize];
 		int decimatedInputPointer = 0;
 		
 		for(int i = 0; i < stuffedInput.length; i += decimationRate * properties.getFrameSize())
@@ -68,12 +109,12 @@ public class ResamplingFilter extends AudioFilter
 			
 			for(byte b : frame)
 			{
-				decimatedInput[decimatedInputPointer] = b;
+				downsampledInput[decimatedInputPointer] = b;
 				decimatedInputPointer++;
 			}
 		}
 		
-		return decimatedInput;
+		return downsampledInput;
 	}
 }
 
@@ -94,5 +135,19 @@ final class MathExtensions
 		}
 		
 		return a;
+	}
+	
+	public static int InterpolateLinear(int a, int b, float weight)
+	{
+		if(weight < 0)
+		{
+			return a;
+		}
+		else if(weight > 1)
+		{
+			return b;
+		}
+		
+		return Math.round(a + ((b - a) * weight));
 	}
 }
