@@ -6,22 +6,32 @@ import java.nio.ByteOrder;
 
 final class ByteHelper 
 {
-	public static int GetIntFromBytes(byte[] data, ByteOrder byteOrder)
+	public static int GetIntFromBytes(byte[] data, ByteOrder byteOrder, boolean signed)
 	{
-		if(data.length >= 2)
+		if(data == null || data.length == 0)
 		{
-			ByteBuffer dataBuffer = ByteBuffer.wrap(data);
-			dataBuffer.order(byteOrder);
-			
-			if(data.length >= 3)
-			{
-				return dataBuffer.getInt();
-			}
-			
-			return dataBuffer.getShort();
+			return 0;
 		}
 		
-		return 0;
+		if(data.length == 1)
+		{
+			return signed ? data[0] : (int)data[0] & 0xff;
+		}
+		
+		ByteBuffer dataBuffer = ByteBuffer.wrap(data);
+		dataBuffer.order(byteOrder);
+		
+		if(data.length < 4)
+		{
+			return signed ? dataBuffer.getShort() : ((int)dataBuffer.getShort() & 0xffff);			
+		}
+		
+		return signed ? dataBuffer.getInt() : (dataBuffer.getInt() & 0xffff);
+	}
+	
+	public static int GetIntFromBytes(byte[] data, ByteOrder byteOrder)
+	{
+		return GetIntFromBytes(data, byteOrder, true);
 	}
 	
 	public static byte[] GetIntBytes(int data, ByteOrder byteOrder)

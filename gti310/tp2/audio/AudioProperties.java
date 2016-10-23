@@ -6,9 +6,14 @@ public class AudioProperties
 	public int SampleRate;
 	public short BitsPerSample;
 	
+	public int getChannelSize()
+	{
+		return (BitsPerSample / 8); 
+	}
+	
 	public int getFrameSize()
 	{
-		return (BitsPerSample / 8) * NumChannels;
+		return getChannelSize() * NumChannels;
 	}
 	
 	public AudioProperties copy()

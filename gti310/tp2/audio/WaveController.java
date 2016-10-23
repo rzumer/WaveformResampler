@@ -89,6 +89,7 @@ public class WaveController extends AudioController
 			
 			fos.write(header);
 			
+			// TODO write faster
 			while(fis.available() > 0)
 			{
 				fos.write(fis.read());

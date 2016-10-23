@@ -1,6 +1,7 @@
 package gti310.tp2.audio;
 
 import java.lang.UnsupportedOperationException;
+import java.nio.ByteOrder;
 import java.util.Arrays;
 
 public class ResamplingFilter extends AudioFilter
@@ -58,52 +59,58 @@ public class ResamplingFilter extends AudioFilter
 		}
 		
 		// Linear Interpolation
-		for(int i = 0; i < stuffedInput.length; i += properties.getFrameSize() * (padding + 1))
+		for(int i = 0; i < stuffedInput.length; i += properties.getFrameSize() + padding)
 		{
-			int j = i + (properties.getFrameSize() * (padding + 1));
+			int j = i + properties.getFrameSize() + padding;
 			
 			// Retrieve frames to interpolate.
 			// If the left frame is the last one, do not interpolate. 
 			byte[] leftFrame = Arrays.copyOfRange(stuffedInput, i, i + properties.getFrameSize());
 			byte[] rightFrame = j >= stuffedInput.length ? 
-					leftFrame : Arrays.copyOfRange(stuffedInput, j, j + properties.getFrameSize());
-			
-			if(properties.NumChannels > 1)
+					null : Arrays.copyOfRange(stuffedInput, j, j + properties.getFrameSize());
+
+			for(int channel = 0; channel < properties.NumChannels; channel++)
 			{
-				// process each channel independently
-			}
-			
-			if(properties.BitsPerSample > 8)
-			{
-				// process multibyte values
-			}
-			else
-			{
-				// 8-bit monaural processing
-				int leftSample = GetByteAsUnsignedInt(stuffedInput[i]); // for 8-bit only
-				int rightSample = 0;
-				if(j < stuffedInput.length)
-				{
-					rightSample = GetByteAsUnsignedInt(stuffedInput[j]); // for 8-bit only
-				}
+				int leftSample = ByteHelper.GetIntFromBytes(
+						Arrays.copyOfRange(leftFrame, channel * properties.getChannelSize(), (channel + 1) * properties.getChannelSize()), 
+						ByteOrder.LITTLE_ENDIAN, properties.BitsPerSample != 8);
+				int rightSample = rightFrame == null ? 0 : ByteHelper.GetIntFromBytes(
+						Arrays.copyOfRange(rightFrame, channel * properties.getChannelSize(), (channel + 1) * properties.getChannelSize()),
+						ByteOrder.LITTLE_ENDIAN, properties.BitsPerSample != 8);
 				
-				for(int k = 0; k < padding; k++)
+				for(int k = 0; k <= padding; k += properties.getFrameSize())
 				{
-					int index = i + properties.getFrameSize() + k;
-					if(index < stuffedInput.length)
+					int index = i + (properties.getFrameSize() * (k + 1)) + (channel * properties.getChannelSize());
+					
+					if(index + properties.getChannelSize() <= stuffedInput.length)
 					{
-						int interpolated = MathHelper.InterpolateLinear(leftSample, rightSample, (float)k / padding);
-						stuffedInput[index] = (byte)interpolated;
+						int interpolatedSample = MathHelper.InterpolateLinear(leftSample, rightSample, 
+								(float)(k + 1) / ((padding / properties.getFrameSize()) + 1));
+						
+						byte[] interpolatedBytes = properties.BitsPerSample == 8 ?
+								new byte[] { (byte)interpolatedSample } : properties.BitsPerSample == 16 ? 
+								ByteHelper.GetShortBytes((short)interpolatedSample, ByteOrder.LITTLE_ENDIAN) :
+								ByteHelper.GetIntBytes(interpolatedSample, ByteOrder.LITTLE_ENDIAN);
+						
+						for(int l = 0; l < interpolatedBytes.length; l++)
+						{
+							stuffedInput[index + l] = interpolatedBytes[l]; 
+						}
 					}
 				}
 			}
 		}
 		
-		// TODO filter out samples with an amplitude above Nyquist (2 x output sample rate)
+		// TODO proper low-pass filtering
 		
 		// Decimation
 		int decimationRate = lcm / outSampleRate;
 		int outputSize = Math.round(input.length / ((float)properties.SampleRate / outSampleRate));
+		
+		while(outputSize % properties.getFrameSize() != 0)
+		{
+			outputSize++;
+		}
 		
 		byte[] downsampledInput = new byte[outputSize];
 		int decimatedInputPointer = 0;
@@ -122,10 +129,5 @@ public class ResamplingFilter extends AudioFilter
 		outProperties.SampleRate = outSampleRate;
 		
 		return downsampledInput;
-	}
-	
-	private static int GetByteAsUnsignedInt(byte b)
-	{
-		return b & 0xff;
 	}
 }

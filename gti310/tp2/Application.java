@@ -34,6 +34,8 @@ public class Application {
 			controller.applyFilter(new ResamplingFilter());
 			controller.saveToFile(outputFileName);
 			
+			System.out.println("Done");
+			
 		} catch (FileNotFoundException e) {
 			System.err.println("File Access Error");
 		} catch (HeaderFormatException e) {
