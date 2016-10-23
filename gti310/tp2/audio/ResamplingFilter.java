@@ -8,7 +8,7 @@ public class ResamplingFilter extends AudioFilter
 	@Override
 	public byte[] process(byte[] input)
 	{
-		return process(input, 44100); // Default output sample rate of 8000 Hz
+		return process(input, 8000); // Default output sample rate of 8000 Hz
 	}
 	
 	public byte[] process(byte[] input, int outSampleRate)
@@ -67,7 +67,7 @@ public class ResamplingFilter extends AudioFilter
 				j = i;
 			}
 			
-			byte[] frame = Arrays.copyOfRange(stuffedInput, i, i + properties.getFrameSize());
+			//byte[] frame = Arrays.copyOfRange(stuffedInput, i, i + properties.getFrameSize());
 			//byte[] frame2 = Arrays.copyOfRange(stuffedInput, j, j + properties.getFrameSize()); not on last frame
 			
 			if(properties.NumChannels > 1)
@@ -113,6 +113,8 @@ public class ResamplingFilter extends AudioFilter
 				decimatedInputPointer++;
 			}
 		}
+		
+		properties.SampleRate = outSampleRate;
 		
 		return downsampledInput;
 	}

@@ -27,6 +27,8 @@ public abstract class AudioController
 	
 	public abstract void applyFilter(AudioFilter filter);
 	
+	public abstract void saveToFile(String outputFilePath);
+	
 	public void close()
 	{
 		if(fileSource != null)

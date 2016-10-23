@@ -1,6 +1,8 @@
 package gti310.tp2;
 
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 
 import gti310.tp2.audio.*;
 import gti310.tp2.io.*;
@@ -22,22 +24,25 @@ public class Application {
 		String outputFileName = args[1];
 		
 		try {
+			File tempFile = File.createTempFile(outputFileName, null);
+			tempFile.deleteOnExit();
+			
 			FileSource input = new FileSource(inputFileName);
-			FileSink output = new FileSink(outputFileName);
+			FileSink output = new FileSink(tempFile.getAbsolutePath());
 			
 			AudioController controller = new WaveController(input, output);
 			controller.applyFilter(new ResamplingFilter());
+			controller.saveToFile(outputFileName);
 			controller.close();
 			
 		} catch (FileNotFoundException e) {
-			System.err.println("I/O Error");
-			return;
+			System.err.println("File Access Error");
 		} catch (HeaderFormatException e) {
-			//e.printStackTrace();
 			System.err.println("Invalid Input");
 		} catch (UnsupportedFormatException e) {
-			// TODO Auto-generated catch block
 			System.err.println("Unsupported Input");
+		} catch (IOException e) {
+			System.err.println("I/O Error");
 		}
 	}
 }

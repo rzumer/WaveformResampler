@@ -25,4 +25,9 @@ public abstract class AudioFilter
 	{
 		this.properties = properties;
 	}
+	
+	public AudioProperties getProperties()
+	{
+		return properties;
+	}
 }

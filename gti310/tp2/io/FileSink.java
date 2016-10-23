@@ -18,6 +18,7 @@ public class FileSink {
 	
 	/* The file's handler */
 	private DataOutputStream _writer;
+	private String location;
 	
 	/**
 	 * Create a new FileSink to write data to. The specified path must exist or
@@ -28,6 +29,8 @@ public class FileSink {
 	 * @throws FileNotFoundException If the path is not valid.
 	 */
 	public FileSink(String location) throws FileNotFoundException {
+		this.location = location;
+		
 		try {
 			/* open new handler to the file */
 			_writer = new DataOutputStream(
@@ -61,5 +64,10 @@ public class FileSink {
 		} catch (IOException e) {
 			/* something went wrong */
 		}
+	}
+	
+	public String getLocation()
+	{
+		return location;
 	}
 }
