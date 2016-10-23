@@ -23,7 +23,7 @@ final class ByteHelper
 		
 		if(data.length < 4)
 		{
-			return signed ? dataBuffer.getShort() : ((int)dataBuffer.getShort() & 0xffff);			
+			return signed ? dataBuffer.getShort() : ((int)dataBuffer.getShort() & 0xffff);
 		}
 		
 		return signed ? dataBuffer.getInt() : (dataBuffer.getInt() & 0xffff);

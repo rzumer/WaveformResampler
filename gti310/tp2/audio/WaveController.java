@@ -3,7 +3,6 @@ package gti310.tp2.audio;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteOrder;
@@ -79,27 +78,25 @@ public class WaveController extends AudioController
 		// Ensure that the file source and the file sink are closed before saving.
 		close();
 		
-		File outputFile = new File(outputFilePath);
-		
 		byte[] header = GenerateFileSinkHeader();
 			
 		try {
 			FileInputStream fis = new FileInputStream(fileSink.getLocation());
-			FileOutputStream fos = new FileOutputStream(outputFile);
+			FileSink fs = new FileSink(outputFilePath);
 			
-			fos.write(header);
+			fs.push(header);
 			
 			// TODO write faster
 			while(fis.available() > 0)
 			{
-				byte[] buffer = new byte[100000];
+				byte[] buffer = new byte[10000];
 				int bytesRead = fis.read(buffer);
 				
-				fos.write(Arrays.copyOfRange(buffer, 0, bytesRead));
+				fs.push(Arrays.copyOfRange(buffer, 0, bytesRead));
 			}
 			
 			fis.close();
-			fos.close();
+			fs.close();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
