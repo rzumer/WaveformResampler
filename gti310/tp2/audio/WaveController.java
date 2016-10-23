@@ -50,7 +50,7 @@ public class WaveController extends AudioController
 		if(properties.SampleRate != 44100 || 
 				(properties.BitsPerSample != 8 && properties.BitsPerSample != 16))
 		{
-			throw new UnsupportedFormatException();
+			//throw new UnsupportedFormatException();
 		}
 	}
 
@@ -92,7 +92,10 @@ public class WaveController extends AudioController
 			// TODO write faster
 			while(fis.available() > 0)
 			{
-				fos.write(fis.read());
+				byte[] buffer = new byte[100000];
+				int bytesRead = fis.read(buffer);
+				
+				fos.write(Arrays.copyOfRange(buffer, 0, bytesRead));
 			}
 			
 			fis.close();

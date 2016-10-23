@@ -14,20 +14,18 @@ public class ResamplingFilter extends AudioFilter
 	
 	public byte[] process(byte[] input, int outSampleRate)
 	{
-		/*if(outSampleRate == properties.SampleRate)
+		if(outSampleRate == properties.SampleRate)
 		{
 			// No processing needed.
 			return input;
 		}
-		
-		else*/ if(outSampleRate > properties.SampleRate)
+		else if(outSampleRate > properties.SampleRate)
 		{
 			// Upsampling is not implemented.
 			throw new UnsupportedOperationException();
 		}
 		
-		// Simple processing
-		// Use FIR interpolation to save CPU/Memory
+		// Would be more efficient with linear interpolation to weigh samples directly using the input/output sample rate ratio.
 		
 		// Bit Stuffing
 		int lcm = MathHelper.LeastCommonMultiple(properties.SampleRate, outSampleRate);
@@ -73,12 +71,12 @@ public class ResamplingFilter extends AudioFilter
 			{
 				int leftSample = ByteHelper.GetIntFromBytes(
 						Arrays.copyOfRange(leftFrame, channel * properties.getChannelSize(), (channel + 1) * properties.getChannelSize()), 
-						ByteOrder.LITTLE_ENDIAN, properties.BitsPerSample != 8);
+						ByteOrder.LITTLE_ENDIAN, properties.BitsPerSample > 8);
 				int rightSample = rightFrame == null ? 0 : ByteHelper.GetIntFromBytes(
 						Arrays.copyOfRange(rightFrame, channel * properties.getChannelSize(), (channel + 1) * properties.getChannelSize()),
-						ByteOrder.LITTLE_ENDIAN, properties.BitsPerSample != 8);
+						ByteOrder.LITTLE_ENDIAN, properties.BitsPerSample > 8);
 				
-				for(int k = 0; k <= padding; k += properties.getFrameSize())
+				for(int k = 0; k <= padding; k++)
 				{
 					int index = i + (properties.getFrameSize() * (k + 1)) + (channel * properties.getChannelSize());
 					
@@ -107,6 +105,7 @@ public class ResamplingFilter extends AudioFilter
 		int decimationRate = lcm / outSampleRate;
 		int outputSize = Math.round(input.length / ((float)properties.SampleRate / outSampleRate));
 		
+		// Add extra bytes if the end of the file is uneven.
 		while(outputSize % properties.getFrameSize() != 0)
 		{
 			outputSize++;
