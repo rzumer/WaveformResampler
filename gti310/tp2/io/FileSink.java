@@ -19,6 +19,7 @@ public class FileSink {
 	/* The file's handler */
 	private DataOutputStream _writer;
 	private String location;
+	private int bytesWritten;
 	
 	/**
 	 * Create a new FileSink to write data to. The specified path must exist or
@@ -61,6 +62,7 @@ public class FileSink {
 		try {
 			/* append data to the end of the file */
 			_writer.write(data);
+			bytesWritten += data.length;
 		} catch (IOException e) {
 			/* something went wrong */
 		}
@@ -69,5 +71,10 @@ public class FileSink {
 	public String getLocation()
 	{
 		return location;
+	}
+	
+	public int getBytesWritten()
+	{
+		return bytesWritten;
 	}
 }

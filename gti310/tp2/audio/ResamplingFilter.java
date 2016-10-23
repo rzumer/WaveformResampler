@@ -58,14 +58,9 @@ public class ResamplingFilter extends AudioFilter
 		}
 		
 		// Linear Interpolation
-		for(int i = 0; i < stuffedInput.length; i+= properties.getFrameSize() * (padding + 1))
+		for(int i = 0; i < stuffedInput.length; i += properties.getFrameSize() * (padding + 1))
 		{
 			int j = i + (properties.getFrameSize() * (padding + 1));
-			
-			if(j >= stuffedInput.length)
-			{
-				j = i;
-			}
 			
 			//byte[] frame = Arrays.copyOfRange(stuffedInput, i, i + properties.getFrameSize());
 			//byte[] frame2 = Arrays.copyOfRange(stuffedInput, j, j + properties.getFrameSize()); not on last frame
@@ -81,15 +76,20 @@ public class ResamplingFilter extends AudioFilter
 			}
 			
 			// 8-bit monaural processing
-			short a = stuffedInput[i];
-			short b = stuffedInput[j];
+			short a = (short) GetByteAsUnsignedInt(stuffedInput[i]); // for 8-bit only
+			short b = 0;
+			if(j < stuffedInput.length)
+			{
+				b = (short) GetByteAsUnsignedInt(stuffedInput[j]); // for 8-bit only
+			}
 			
 			for(int k = 0; k < padding; k++)
 			{
-				int index = i + properties.getFrameSize() + k - 1;
+				int index = i + properties.getFrameSize() + k;
 				if(index < stuffedInput.length)
 				{
-					stuffedInput[index] = (byte) MathExtensions.InterpolateLinear(a, b, (float) k / padding);
+					int interpolated = MathExtensions.InterpolateLinear(a, b, (float)k / padding);
+					stuffedInput[index] = (byte) (interpolated);
 				}
 			}
 		}
@@ -109,7 +109,7 @@ public class ResamplingFilter extends AudioFilter
 			
 			for(byte b : frame)
 			{
-				downsampledInput[decimatedInputPointer] = (byte) ((short)b);
+				downsampledInput[decimatedInputPointer] = b;
 				decimatedInputPointer++;
 			}
 		}
@@ -117,6 +117,11 @@ public class ResamplingFilter extends AudioFilter
 		outProperties.SampleRate = outSampleRate;
 		
 		return downsampledInput;
+	}
+	
+	private static int GetByteAsUnsignedInt(byte b)
+	{
+		return b & 0xff;
 	}
 }
 
@@ -141,15 +146,15 @@ final class MathExtensions
 	
 	public static int InterpolateLinear(int a, int b, float weight)
 	{
-		if(weight < 0)
+		if(weight <= 0)
 		{
 			return a;
 		}
-		else if(weight > 1)
+		else if(weight >= 1)
 		{
 			return b;
 		}
 		
-		return Math.round(a + ((b - a) * weight));
+		return Math.round(a + ((float)(b - a) * weight));
 	}
 }

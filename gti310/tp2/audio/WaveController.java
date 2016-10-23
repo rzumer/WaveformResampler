@@ -1,12 +1,10 @@
 package gti310.tp2.audio;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -79,6 +77,9 @@ public class WaveController extends AudioController
 	@Override
 	public void saveToFile(String outputFilePath)
 	{
+		// Ensure that the file source and the file sink are closed before saving.
+		close();
+		
 		File outputFile = new File(outputFilePath);
 		
 		byte[] header = GenerateFileSinkHeader();
