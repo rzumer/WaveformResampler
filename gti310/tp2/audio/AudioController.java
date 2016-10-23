@@ -11,10 +11,10 @@ public abstract class AudioController
 	
 	public AudioController(FileSource source, FileSink sink) throws HeaderFormatException, UnsupportedFormatException
 	{
-		/*if(source == null || sink == null)
+		if(source == null || sink == null)
 		{
 			throw new IllegalArgumentException();
-		}*/
+		}
 		
 		fileSource = source;
 		fileSink = sink;

@@ -29,7 +29,7 @@ public class ResamplingFilter extends AudioFilter
 		// Use FIR interpolation to save CPU/Memory
 		
 		// Bit Stuffing
-		int lcm = MathExtensions.LeastCommonMultiple(properties.SampleRate, outSampleRate);
+		int lcm = MathHelper.LeastCommonMultiple(properties.SampleRate, outSampleRate);
 		int padding = ((lcm / properties.SampleRate) - 1) * properties.getFrameSize();
 		
 		// Stuffed input contains the initial bytes, plus the zeroes which are between each frame.
@@ -62,8 +62,11 @@ public class ResamplingFilter extends AudioFilter
 		{
 			int j = i + (properties.getFrameSize() * (padding + 1));
 			
-			//byte[] frame = Arrays.copyOfRange(stuffedInput, i, i + properties.getFrameSize());
-			//byte[] frame2 = Arrays.copyOfRange(stuffedInput, j, j + properties.getFrameSize()); not on last frame
+			// Retrieve frames to interpolate.
+			// If the left frame is the last one, do not interpolate. 
+			byte[] leftFrame = Arrays.copyOfRange(stuffedInput, i, i + properties.getFrameSize());
+			byte[] rightFrame = j >= stuffedInput.length ? 
+					leftFrame : Arrays.copyOfRange(stuffedInput, j, j + properties.getFrameSize());
 			
 			if(properties.NumChannels > 1)
 			{
@@ -74,22 +77,24 @@ public class ResamplingFilter extends AudioFilter
 			{
 				// process multibyte values
 			}
-			
-			// 8-bit monaural processing
-			short a = (short) GetByteAsUnsignedInt(stuffedInput[i]); // for 8-bit only
-			short b = 0;
-			if(j < stuffedInput.length)
+			else
 			{
-				b = (short) GetByteAsUnsignedInt(stuffedInput[j]); // for 8-bit only
-			}
-			
-			for(int k = 0; k < padding; k++)
-			{
-				int index = i + properties.getFrameSize() + k;
-				if(index < stuffedInput.length)
+				// 8-bit monaural processing
+				int leftSample = GetByteAsUnsignedInt(stuffedInput[i]); // for 8-bit only
+				int rightSample = 0;
+				if(j < stuffedInput.length)
 				{
-					int interpolated = MathExtensions.InterpolateLinear(a, b, (float)k / padding);
-					stuffedInput[index] = (byte) (interpolated);
+					rightSample = GetByteAsUnsignedInt(stuffedInput[j]); // for 8-bit only
+				}
+				
+				for(int k = 0; k < padding; k++)
+				{
+					int index = i + properties.getFrameSize() + k;
+					if(index < stuffedInput.length)
+					{
+						int interpolated = MathHelper.InterpolateLinear(leftSample, rightSample, (float)k / padding);
+						stuffedInput[index] = (byte)interpolated;
+					}
 				}
 			}
 		}
@@ -122,39 +127,5 @@ public class ResamplingFilter extends AudioFilter
 	private static int GetByteAsUnsignedInt(byte b)
 	{
 		return b & 0xff;
-	}
-}
-
-final class MathExtensions
-{
-	public static int LeastCommonMultiple(int a, int b)
-	{
-		return a / GreatestCommonDivisor(a, b) * b;
-	}
-	
-	public static int GreatestCommonDivisor(int a, int b)
-	{
-		while(b != 0)
-		{
-			int temp = b;
-			b = a % b;
-			a = temp;
-		}
-		
-		return a;
-	}
-	
-	public static int InterpolateLinear(int a, int b, float weight)
-	{
-		if(weight <= 0)
-		{
-			return a;
-		}
-		else if(weight >= 1)
-		{
-			return b;
-		}
-		
-		return Math.round(a + ((float)(b - a) * weight));
 	}
 }

@@ -6,7 +6,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 
@@ -32,7 +31,7 @@ public class WaveController extends AudioController
 			String format = new String(Arrays.copyOfRange(header, 8, 12), "US-ASCII");
 			
 			if(!format.equals("WAVE") || 
-					GetIntFromBytes(Arrays.copyOfRange(header, 20, 22), 
+					ByteHelper.GetIntFromBytes(Arrays.copyOfRange(header, 20, 22), 
 					ByteOrder.LITTLE_ENDIAN) != 1)
 			{
 				throw new HeaderFormatException();
@@ -43,9 +42,9 @@ public class WaveController extends AudioController
 			e.printStackTrace();
 		}
 		
-		properties.NumChannels = (short) GetIntFromBytes(Arrays.copyOfRange(header, 22, 24), ByteOrder.LITTLE_ENDIAN);
-		properties.SampleRate = GetIntFromBytes(Arrays.copyOfRange(header, 24, 28), ByteOrder.LITTLE_ENDIAN);
-		properties.BitsPerSample = (short) GetIntFromBytes(Arrays.copyOfRange(header, 34, 36), ByteOrder.LITTLE_ENDIAN);
+		properties.NumChannels = (short) ByteHelper.GetIntFromBytes(Arrays.copyOfRange(header, 22, 24), ByteOrder.LITTLE_ENDIAN);
+		properties.SampleRate = ByteHelper.GetIntFromBytes(Arrays.copyOfRange(header, 24, 28), ByteOrder.LITTLE_ENDIAN);
+		properties.BitsPerSample = (short) ByteHelper.GetIntFromBytes(Arrays.copyOfRange(header, 34, 36), ByteOrder.LITTLE_ENDIAN);
 		
 		// Check for the proper input properties
 		if(properties.SampleRate != 44100 || 
@@ -104,49 +103,6 @@ public class WaveController extends AudioController
 		}
 	}
 	
-	private static int GetIntFromBytes(byte[] data, ByteOrder byteOrder)
-	{
-		if(data.length >= 2)
-		{
-			ByteBuffer dataBuffer = ByteBuffer.wrap(data);
-			dataBuffer.order(byteOrder);
-			
-			if(data.length >= 3)
-			{
-				return dataBuffer.getInt();
-			}
-			
-			return dataBuffer.getShort();
-		}
-		
-		return 0;
-	}
-	
-	private static byte[] GetIntBytes(int data, ByteOrder byteOrder)
-	{
-		ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
-	    buffer.order(byteOrder);
-	    buffer.putInt(data);
-	    return buffer.array();
-	}
-	
-	private static byte[] GetShortBytes(short data, ByteOrder byteOrder)
-	{
-		ByteBuffer buffer = ByteBuffer.allocate(Short.BYTES);
-	    buffer.order(byteOrder);
-	    buffer.putShort(data);
-	    return buffer.array();
-	}
-	
-	private static byte[] GetASCIIBytes(String data, ByteOrder byteOrder)
-	{
-		try {
-			return data.getBytes("US-ASCII");
-		} catch (UnsupportedEncodingException e) {
-			return null;
-		}
-	}
-	
 	private byte[] GenerateFileSinkHeader()
 	{
 		byte[] header = new byte[44];
@@ -155,7 +111,7 @@ public class WaveController extends AudioController
 		
 		// ChunkID
 		String id = "RIFF";
-		byte[] idBytes = GetASCIIBytes(id, ByteOrder.BIG_ENDIAN);
+		byte[] idBytes = ByteHelper.GetASCIIBytes(id, ByteOrder.BIG_ENDIAN);
 		
 		for(byte b : idBytes)
 		{
@@ -166,7 +122,7 @@ public class WaveController extends AudioController
 		// ChunkSize
 		currentByte = 4;
 		int chunkSize = 36 + dataSize;
-		byte[] chunkSizeBytes = GetIntBytes(chunkSize, ByteOrder.LITTLE_ENDIAN);
+		byte[] chunkSizeBytes = ByteHelper.GetIntBytes(chunkSize, ByteOrder.LITTLE_ENDIAN);
 		for(byte b : chunkSizeBytes)
 		{
 			header[currentByte] = b;
@@ -176,7 +132,7 @@ public class WaveController extends AudioController
 		// Format
 		currentByte = 8;
 		String format = "WAVE";
-		byte[] formatBytes = GetASCIIBytes(format, ByteOrder.BIG_ENDIAN);
+		byte[] formatBytes = ByteHelper.GetASCIIBytes(format, ByteOrder.BIG_ENDIAN);
 		for(byte b : formatBytes)
 		{
 			header[currentByte] = b;
@@ -186,7 +142,7 @@ public class WaveController extends AudioController
 		// Subchunk1ID
 		currentByte = 12;
 		String subchunk1ID = "fmt ";
-		byte[] subchunk1IDBytes = GetASCIIBytes(subchunk1ID, ByteOrder.BIG_ENDIAN);
+		byte[] subchunk1IDBytes = ByteHelper.GetASCIIBytes(subchunk1ID, ByteOrder.BIG_ENDIAN);
 		for(byte b : subchunk1IDBytes)
 		{
 			header[currentByte] = b;
@@ -196,7 +152,7 @@ public class WaveController extends AudioController
 		// Subchunk1Size
 		currentByte = 16;
 		int subChunk1Size = 16;
-		byte[] subchunk1SizeBytes = GetIntBytes(subChunk1Size, ByteOrder.LITTLE_ENDIAN);
+		byte[] subchunk1SizeBytes = ByteHelper.GetIntBytes(subChunk1Size, ByteOrder.LITTLE_ENDIAN);
 		for(byte b : subchunk1SizeBytes)
 		{
 			header[currentByte] = b;
@@ -206,7 +162,7 @@ public class WaveController extends AudioController
 		// AudioFormat
 		currentByte = 20;
 		short audioFormat = 1;
-		byte[] audioFormatBytes = GetShortBytes(audioFormat, ByteOrder.LITTLE_ENDIAN);
+		byte[] audioFormatBytes = ByteHelper.GetShortBytes(audioFormat, ByteOrder.LITTLE_ENDIAN);
 		for(byte b : audioFormatBytes)
 		{
 			header[currentByte] = b;
@@ -216,7 +172,7 @@ public class WaveController extends AudioController
 		// NumChannels
 		currentByte = 22;
 		short numChannels = properties.NumChannels;
-		byte[] numChannelsBytes = GetShortBytes(numChannels, ByteOrder.LITTLE_ENDIAN);
+		byte[] numChannelsBytes = ByteHelper.GetShortBytes(numChannels, ByteOrder.LITTLE_ENDIAN);
 		for(byte b : numChannelsBytes)
 		{
 			header[currentByte] = b;
@@ -226,7 +182,7 @@ public class WaveController extends AudioController
 		// SampleRate
 		currentByte = 24;
 		int sampleRate = properties.SampleRate;
-		byte[] sampleRateBytes = GetIntBytes(sampleRate, ByteOrder.LITTLE_ENDIAN);
+		byte[] sampleRateBytes = ByteHelper.GetIntBytes(sampleRate, ByteOrder.LITTLE_ENDIAN);
 		for(byte b : sampleRateBytes)
 		{
 			header[currentByte] = b;
@@ -237,7 +193,7 @@ public class WaveController extends AudioController
 		currentByte = 28;
 		short bitsPerSample = properties.BitsPerSample;
 		int byteRate = sampleRate * numChannels * (bitsPerSample / 8);
-		byte[] byteRateBytes = GetIntBytes(byteRate, ByteOrder.LITTLE_ENDIAN);
+		byte[] byteRateBytes = ByteHelper.GetIntBytes(byteRate, ByteOrder.LITTLE_ENDIAN);
 		for(byte b : byteRateBytes)
 		{
 			header[currentByte] = b;
@@ -247,7 +203,7 @@ public class WaveController extends AudioController
 		// BlockAlign
 		currentByte = 32;
 		short blockAlign = (short) (numChannels * (bitsPerSample / 8));
-		byte[] blockAlignBytes = GetShortBytes(blockAlign, ByteOrder.LITTLE_ENDIAN);
+		byte[] blockAlignBytes = ByteHelper.GetShortBytes(blockAlign, ByteOrder.LITTLE_ENDIAN);
 		for(byte b : blockAlignBytes)
 		{
 			header[currentByte] = b;
@@ -256,7 +212,7 @@ public class WaveController extends AudioController
 		
 		// BitsPerSample
 		currentByte = 34;
-		byte[] bitsPerSampleBytes = GetShortBytes(bitsPerSample, ByteOrder.LITTLE_ENDIAN);
+		byte[] bitsPerSampleBytes = ByteHelper.GetShortBytes(bitsPerSample, ByteOrder.LITTLE_ENDIAN);
 		for(byte b : bitsPerSampleBytes)
 		{
 			header[currentByte] = b;
@@ -266,7 +222,7 @@ public class WaveController extends AudioController
 		// Subchunk2ID
 		currentByte = 36;
 		String subchunk2ID = "data";
-		byte[] subchunk2IDBytes = GetASCIIBytes(subchunk2ID, ByteOrder.BIG_ENDIAN);
+		byte[] subchunk2IDBytes = ByteHelper.GetASCIIBytes(subchunk2ID, ByteOrder.BIG_ENDIAN);
 		for(byte b : subchunk2IDBytes)
 		{
 			header[currentByte] = b;
@@ -276,7 +232,7 @@ public class WaveController extends AudioController
 		// Subchunk2Size
 		currentByte = 40;
 		int subchunk2Size = dataSize;
-		byte[] subchunk2SizeBytes = GetIntBytes(subchunk2Size, ByteOrder.LITTLE_ENDIAN);
+		byte[] subchunk2SizeBytes = ByteHelper.GetIntBytes(subchunk2Size, ByteOrder.LITTLE_ENDIAN);
 		for(byte b : subchunk2SizeBytes)
 		{
 			header[currentByte] = b;
