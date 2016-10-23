@@ -2,6 +2,7 @@ package gti310.tp2.audio;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -16,8 +17,6 @@ import gti310.tp2.io.FileSource;
 
 public class WaveController extends AudioController
 {
-	private final static int HeaderLength = 44;
-
 	public WaveController(FileSource source, FileSink sink) throws HeaderFormatException, UnsupportedFormatException
 	{
 		super(source, sink);
@@ -26,7 +25,8 @@ public class WaveController extends AudioController
 	@Override
 	protected void initializeProperties() throws HeaderFormatException, UnsupportedFormatException
 	{
-		byte[] header = fileSource.pop(HeaderLength);
+		// TODO may have extra metadata, search for subchunk 2 instead ("data")
+		byte[] header = fileSource.pop(44);
 		
 		try
 		{
@@ -60,7 +60,7 @@ public class WaveController extends AudioController
 	@Override
 	public void applyFilter(AudioFilter filter)
 	{
-		filter.setProperties(properties);
+		filter.setInputProperties(properties);
 		
 		byte[] bytesPopped = null;
 		
@@ -73,7 +73,7 @@ public class WaveController extends AudioController
 		}
 		
 		// Update properties if they were changed while applying the filter.
-		properties = filter.getProperties();
+		properties = filter.getOutputProperties();
 	}
 	
 	@Override
@@ -84,17 +84,17 @@ public class WaveController extends AudioController
 		byte[] header = GenerateFileSinkHeader();
 			
 		try {
-			RandomAccessFile raf = new RandomAccessFile(fileSink.getLocation(), "r");
+			FileInputStream fis = new FileInputStream(fileSink.getLocation());
 			FileOutputStream fos = new FileOutputStream(outputFile);
 			
 			fos.write(header);
 			
-			for(int i = 0; i < raf.length(); i++)
+			while(fis.available() > 0)
 			{
-				fos.write(raf.readByte());
+				fos.write(fis.read());
 			}
 			
-			raf.close();
+			fis.close();
 			fos.close();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -148,7 +148,7 @@ public class WaveController extends AudioController
 	
 	private byte[] GenerateFileSinkHeader()
 	{
-		byte[] header = new byte[HeaderLength];
+		byte[] header = new byte[44];
 		int currentByte = 0;
 		int dataSize = (int) new File(fileSink.getLocation()).length();
 		

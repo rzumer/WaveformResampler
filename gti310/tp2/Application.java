@@ -3,6 +3,7 @@ package gti310.tp2;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
 
 import gti310.tp2.audio.*;
 import gti310.tp2.io.*;
@@ -33,6 +34,7 @@ public class Application {
 			AudioController controller = new WaveController(input, output);
 			controller.applyFilter(new ResamplingFilter());
 			controller.saveToFile(outputFileName);
+			
 			controller.close();
 			
 		} catch (FileNotFoundException e) {

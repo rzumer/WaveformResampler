@@ -10,4 +10,14 @@ public class AudioProperties
 	{
 		return (BitsPerSample / 8) * NumChannels;
 	}
+	
+	public AudioProperties copy()
+	{
+		AudioProperties copy = new AudioProperties();
+		copy.NumChannels = NumChannels;
+		copy.SampleRate = SampleRate;
+		copy.BitsPerSample = BitsPerSample;
+		
+		return copy;
+	}
 }

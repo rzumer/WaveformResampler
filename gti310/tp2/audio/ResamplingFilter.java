@@ -98,7 +98,7 @@ public class ResamplingFilter extends AudioFilter
 		
 		// Decimation
 		int decimationRate = lcm / outSampleRate;
-		int outputSize = Math.round(input.length * (float)properties.SampleRate / outSampleRate);
+		int outputSize = Math.round(input.length / ((float)properties.SampleRate / outSampleRate));
 		
 		byte[] downsampledInput = new byte[outputSize];
 		int decimatedInputPointer = 0;
@@ -109,12 +109,12 @@ public class ResamplingFilter extends AudioFilter
 			
 			for(byte b : frame)
 			{
-				downsampledInput[decimatedInputPointer] = b;
+				downsampledInput[decimatedInputPointer] = (byte) ((short)b);
 				decimatedInputPointer++;
 			}
 		}
 		
-		properties.SampleRate = outSampleRate;
+		outProperties.SampleRate = outSampleRate;
 		
 		return downsampledInput;
 	}

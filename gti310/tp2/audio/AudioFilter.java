@@ -14,6 +14,7 @@ package gti310.tp2.audio;
 public abstract class AudioFilter
 {
 	AudioProperties properties;
+	AudioProperties outProperties;
 	
 	/**
 	 * Filter the input data.
@@ -21,13 +22,14 @@ public abstract class AudioFilter
 	 */
 	public abstract byte[] process(byte[] input);
 	
-	public void setProperties(AudioProperties properties)
+	public void setInputProperties(AudioProperties properties)
 	{
 		this.properties = properties;
+		this.outProperties = properties.copy();
 	}
 	
-	public AudioProperties getProperties()
+	public AudioProperties getOutputProperties()
 	{
-		return properties;
+		return outProperties;
 	}
 }
