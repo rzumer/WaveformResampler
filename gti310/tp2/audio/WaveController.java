@@ -53,6 +53,7 @@ public class WaveController extends AudioController
 	{
 		filter.setInputProperties(properties);
 		
+		// Apply the filter
 		byte[] bytesPopped = null;
 		
 		while(fileSource.bytesRemaining() > 0)
