@@ -1,6 +1,5 @@
 package gti310.tp2.audio;
 
-import java.lang.UnsupportedOperationException;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 
@@ -58,11 +57,12 @@ public class ResamplingFilter extends AudioFilter
 		}
 		else if(outSampleRate > properties.SampleRate)
 		{
-			// Upsampling is not implemented.
+			// See the interpolation note below for why this is not supported.
 			throw new UnsupportedOperationException();
 		}
 		
 		// Would be more efficient with linear interpolation to weigh samples directly using the input/output sample rate ratio.
+		ByteOrder byteOrder = ByteOrder.LITTLE_ENDIAN;
 		int frameSize = properties.getFrameSize();
 		int sampleRateLCM = MathHelper.LeastCommonMultiple(properties.SampleRate, outSampleRate);
 		
@@ -70,7 +70,7 @@ public class ResamplingFilter extends AudioFilter
 		int padding = ((sampleRateLCM / properties.SampleRate) - 1) * frameSize;
 		
 		// Stuffed input contains the initial bytes, plus the zeroes which are between each frame.
-		byte[] stuffedInput = new byte[input.length + (input.length / frameSize * padding) - padding];
+		byte[] stuffedInput = new byte[input.length + (input.length / frameSize * padding)];
 		int stuffedInputPointer = 0;
 		
 		for(int i = 0; i < input.length; i+= frameSize)
@@ -83,8 +83,9 @@ public class ResamplingFilter extends AudioFilter
 				stuffedInputPointer++;
 			}
 			
-			// Do not stuff after the last frame.
-			if(i < input.length - frameSize)
+			// Padding is also inserted after the last frame. This padding will not be interpolated.
+			// It is used when upsampling, but never when downsampling.
+			if(i <= (input.length - frameSize))
 			{
 				for(int j = 0; j < padding; j++)
 				{
@@ -100,19 +101,21 @@ public class ResamplingFilter extends AudioFilter
 			int j = i + frameSize + padding;
 			
 			// Retrieve frames to interpolate.
-			// If the left frame is the last one, do not interpolate. 
+			// If the left frame is the last one, do not interpolate.
 			byte[] leftFrame = Arrays.copyOfRange(stuffedInput, i, i + frameSize);
 			byte[] rightFrame = j >= stuffedInput.length ? 
 					null : Arrays.copyOfRange(stuffedInput, j, j + frameSize);
 
+			// Note: upsampling using this method will leave uninterpolated bytes at the end of each segment.
+			// This is because no interpolation can be done between segments.
 			for(int channel = 0; channel < properties.NumChannels; channel++)
 			{
 				int leftSample = ByteHelper.GetIntFromBytes(
 						Arrays.copyOfRange(leftFrame, channel * properties.getChannelSize(), (channel + 1) * properties.getChannelSize()), 
-						ByteOrder.LITTLE_ENDIAN, properties.BitsPerSample > 8);
+						byteOrder, properties.BitsPerSample > 8);
 				int rightSample = rightFrame == null ? 0 : ByteHelper.GetIntFromBytes(
 						Arrays.copyOfRange(rightFrame, channel * properties.getChannelSize(), (channel + 1) * properties.getChannelSize()),
-						ByteOrder.LITTLE_ENDIAN, properties.BitsPerSample > 8);
+						byteOrder, properties.BitsPerSample > 8);
 				
 				for(int k = 0; k < (padding / frameSize); k++)
 				{
@@ -125,8 +128,8 @@ public class ResamplingFilter extends AudioFilter
 						
 						byte[] interpolatedBytes = properties.BitsPerSample == 8 ?
 								new byte[] { (byte)interpolatedSample } : properties.BitsPerSample == 16 ? 
-								ByteHelper.GetShortBytes((short)interpolatedSample, ByteOrder.LITTLE_ENDIAN) :
-								ByteHelper.GetIntBytes(interpolatedSample, ByteOrder.LITTLE_ENDIAN);
+								ByteHelper.GetShortBytes((short)interpolatedSample, byteOrder) :
+								ByteHelper.GetIntBytes(interpolatedSample, byteOrder);
 						
 						for(int l = 0; l < interpolatedBytes.length; l++)
 						{
@@ -156,10 +159,14 @@ public class ResamplingFilter extends AudioFilter
 		{
 			byte[] frame = Arrays.copyOfRange(stuffedInput, i, i + frameSize);
 			
-			for(byte b : frame)
+			// Prevent an array out of bounds on the final segment's trailing padding.
+			if(decimatedInputPointer < outputSize + frame.length - 1)
 			{
-				downsampledInput[decimatedInputPointer] = b;
-				decimatedInputPointer++;
+				for(byte b : frame)
+				{
+						downsampledInput[decimatedInputPointer] = b;
+						decimatedInputPointer++;
+				}
 			}
 		}
 		
