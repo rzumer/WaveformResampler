@@ -1,17 +1,21 @@
 package gti310.tp2.audio;
 
-import java.nio.ByteOrder;
 import java.util.Arrays;
 
 import gti310.tp2.audio.AudioProperties.AudioFormat;
 
 public class ResamplingFilter extends AudioFilter
 {	
+	private byte[] lastFrameProcessed;
+	private int decimationOffset;
+	
 	public ResamplingFilter(int outSampleRate)
 	{
 		super();
 		
 		outProperties.SampleRate = outSampleRate;
+		lastFrameProcessed = null;
+		decimationOffset = 0;
 	}
 	
 	@Override
@@ -26,14 +30,18 @@ public class ResamplingFilter extends AudioFilter
 			outProperties = properties.copy();
 			outProperties.SampleRate = outSampleRate;
 		}
+		
+		lastFrameProcessed = null;
+		decimationOffset = 0;
 	}
 
 	@Override
 	public byte[] process(byte[] input)
 	{
-		return process(input, outProperties.SampleRate); // Default output sample rate of 8000 Hz
+		return process(input, outProperties.SampleRate);
 	}
 	
+	// TODO Use ArrayList instead of regular arrays and counters.
 	public byte[] process(byte[] input, int outSampleRate)
 	{
 		if(outSampleRate <= 0)
@@ -55,23 +63,22 @@ public class ResamplingFilter extends AudioFilter
 			// No processing needed.
 			return input;
 		}
-		else if(outSampleRate > properties.SampleRate)
-		{
-			// See the interpolation note below for why this is not supported.
-			throw new UnsupportedOperationException();
-		}
 		
-		// Would be more efficient with linear interpolation to weigh samples directly using the input/output sample rate ratio.
-		ByteOrder byteOrder = ByteOrder.LITTLE_ENDIAN;
+		// Note: it would be more efficient with linear interpolation to weigh samples directly using the input/output sample rate ratio.
 		int frameSize = properties.getFrameSize();
 		int sampleRateLCM = MathHelper.LeastCommonMultiple(properties.SampleRate, outSampleRate);
 		
 		// Bit Stuffing
 		int padding = ((sampleRateLCM / properties.SampleRate) - 1) * frameSize;
 		
-		// Stuffed input contains the initial bytes, plus the zeroes which are between each frame.
-		byte[] stuffedInput = new byte[input.length + (input.length / frameSize * padding)];
-		int stuffedInputPointer = 0;
+		// Stuffed input contains the initial bytes, plus zeroes between each frame as padding.
+		// If this is not the first segment being processed, append extra padding at the start, which will be interpolated with the last frame.
+		byte[] stuffedInput = 
+				lastFrameProcessed == null ? 
+				new byte[input.length + (input.length / frameSize * padding) - padding] : 
+				new byte[input.length + (input.length / frameSize * padding)];
+		
+		int stuffedInputPointer = lastFrameProcessed == null ? 0 : padding;
 		
 		for(int i = 0; i < input.length; i+= frameSize)
 		{
@@ -83,39 +90,27 @@ public class ResamplingFilter extends AudioFilter
 				stuffedInputPointer++;
 			}
 			
-			// Padding is also inserted after the last frame. This padding will not be interpolated.
-			// It is used when upsampling, but never when downsampling.
-			if(i <= (input.length - frameSize))
-			{
-				for(int j = 0; j < padding; j++)
-				{
-					stuffedInput[stuffedInputPointer] = 0;
-					stuffedInputPointer++;
-				}
-			}
+			stuffedInputPointer += padding;
 		}
 		
 		// Linear Interpolation
-		for(int i = 0; i < stuffedInput.length; i += frameSize + padding)
+		for(int i = 0 - (lastFrameProcessed == null ? 0 : frameSize); i < stuffedInput.length; i += frameSize + padding)
 		{
 			int j = i + frameSize + padding;
 			
 			// Retrieve frames to interpolate.
-			// If the left frame is the last one, do not interpolate.
-			byte[] leftFrame = Arrays.copyOfRange(stuffedInput, i, i + frameSize);
+			byte[] leftFrame = i >= 0 ? Arrays.copyOfRange(stuffedInput, i, i + frameSize) : lastFrameProcessed;
 			byte[] rightFrame = j >= stuffedInput.length ? 
 					null : Arrays.copyOfRange(stuffedInput, j, j + frameSize);
 
-			// Note: upsampling using this method will leave uninterpolated bytes at the end of each segment.
-			// This is because no interpolation can be done between segments.
 			for(int channel = 0; channel < properties.NumChannels; channel++)
 			{
 				int leftSample = ByteHelper.GetIntFromBytes(
 						Arrays.copyOfRange(leftFrame, channel * properties.getChannelSize(), (channel + 1) * properties.getChannelSize()), 
-						byteOrder, properties.BitsPerSample > 8);
-				int rightSample = rightFrame == null ? 0 : ByteHelper.GetIntFromBytes(
+						properties.ByteOrder, properties.BitsPerSample > 8);
+				int rightSample = rightFrame == null ? ByteHelper.GetZeroByte(properties.BitsPerSample > 8) : ByteHelper.GetIntFromBytes(
 						Arrays.copyOfRange(rightFrame, channel * properties.getChannelSize(), (channel + 1) * properties.getChannelSize()),
-						byteOrder, properties.BitsPerSample > 8);
+						properties.ByteOrder, properties.BitsPerSample > 8);
 				
 				for(int k = 0; k < (padding / frameSize); k++)
 				{
@@ -128,8 +123,8 @@ public class ResamplingFilter extends AudioFilter
 						
 						byte[] interpolatedBytes = properties.BitsPerSample == 8 ?
 								new byte[] { (byte)interpolatedSample } : properties.BitsPerSample == 16 ? 
-								ByteHelper.GetShortBytes((short)interpolatedSample, byteOrder) :
-								ByteHelper.GetIntBytes(interpolatedSample, byteOrder);
+								ByteHelper.GetShortBytes((short)interpolatedSample, properties.ByteOrder) :
+								ByteHelper.GetIntBytes(interpolatedSample, properties.ByteOrder);
 						
 						for(int l = 0; l < interpolatedBytes.length; l++)
 						{
@@ -144,7 +139,7 @@ public class ResamplingFilter extends AudioFilter
 		
 		// Decimation
 		int decimationRate = sampleRateLCM / outSampleRate;
-		int outputSize = Math.round(input.length / ((float)properties.SampleRate / outSampleRate));
+		int outputSize = Math.round(((float)stuffedInput.length / decimationRate));
 		
 		// Add extra bytes if the end of the file is uneven.
 		while(outputSize % frameSize != 0)
@@ -155,22 +150,28 @@ public class ResamplingFilter extends AudioFilter
 		byte[] downsampledInput = new byte[outputSize];
 		int decimatedInputPointer = 0;
 		
-		for(int i = 0; i < stuffedInput.length; i += decimationRate * frameSize)
+		for(int i = decimationOffset * frameSize; i < stuffedInput.length; i += decimationRate * frameSize)
 		{
 			byte[] frame = Arrays.copyOfRange(stuffedInput, i, i + frameSize);
 			
-			// Prevent an array out of bounds on the final segment's trailing padding.
-			if(decimatedInputPointer < outputSize + frame.length - 1)
+			for(byte b : frame)
 			{
-				for(byte b : frame)
-				{
-						downsampledInput[decimatedInputPointer] = b;
-						decimatedInputPointer++;
-				}
+					downsampledInput[decimatedInputPointer] = b;
+					decimatedInputPointer++;
 			}
+			
+			decimationOffset = Math.abs(stuffedInput.length - (decimationRate * frameSize) - i) / frameSize;
+		}
+		
+		// Fill in any remaining bytes with silence.
+		while(decimatedInputPointer < outputSize)
+		{
+			downsampledInput[decimatedInputPointer] = ByteHelper.GetZeroByte(properties.BitsPerSample > 8); 
+			decimatedInputPointer++;
 		}
 		
 		outProperties.SampleRate = outSampleRate;
+		lastFrameProcessed = Arrays.copyOfRange(input, input.length - frameSize, input.length);
 		
 		return downsampledInput;
 	}

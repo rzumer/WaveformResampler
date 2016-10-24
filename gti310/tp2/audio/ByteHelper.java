@@ -58,4 +58,9 @@ final class ByteHelper
 			return null;
 		}
 	}
+	
+	public static byte GetZeroByte(boolean signed)
+	{
+		return (byte) (signed ? 0 : 0 & 0xff);
+	}
 }

@@ -1,5 +1,7 @@
 package gti310.tp2.audio;
 
+import java.nio.ByteOrder;
+
 public class AudioProperties
 {
 	public static enum AudioFormat
@@ -10,6 +12,7 @@ public class AudioProperties
 	public short NumChannels;
 	public int SampleRate;
 	public short BitsPerSample;
+	public ByteOrder ByteOrder;
 	public AudioFormat Format;
 	
 	public int getChannelSize()
@@ -29,6 +32,7 @@ public class AudioProperties
 		copy.SampleRate = SampleRate;
 		copy.BitsPerSample = BitsPerSample;
 		copy.Format = Format;
+		copy.ByteOrder = ByteOrder;
 		
 		return copy;
 	}
