@@ -8,6 +8,7 @@ import java.io.UnsupportedEncodingException;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 
+import gti310.tp2.audio.AudioProperties.AudioFormat;
 import gti310.tp2.io.FileSink;
 import gti310.tp2.io.FileSource;
 
@@ -41,16 +42,10 @@ public class WaveController extends AudioController
 			e.printStackTrace();
 		}
 		
+		properties.Format = AudioFormat.WAVE_PCM;
 		properties.NumChannels = (short) ByteHelper.GetIntFromBytes(Arrays.copyOfRange(header, 22, 24), ByteOrder.LITTLE_ENDIAN);
 		properties.SampleRate = ByteHelper.GetIntFromBytes(Arrays.copyOfRange(header, 24, 28), ByteOrder.LITTLE_ENDIAN);
 		properties.BitsPerSample = (short) ByteHelper.GetIntFromBytes(Arrays.copyOfRange(header, 34, 36), ByteOrder.LITTLE_ENDIAN);
-		
-		// Check for the proper input properties
-		if(properties.SampleRate != 44100 || 
-				(properties.BitsPerSample != 8 && properties.BitsPerSample != 16))
-		{
-			//throw new UnsupportedFormatException();
-		}
 	}
 
 	@Override

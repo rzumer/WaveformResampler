@@ -16,6 +16,12 @@ public abstract class AudioFilter
 	AudioProperties properties;
 	AudioProperties outProperties;
 	
+	public AudioFilter()
+	{
+		properties = new AudioProperties();
+		outProperties = new AudioProperties();
+	}
+	
 	/**
 	 * Filter the input data.
 	 * The function should make sure the input data is valid beforehand.
@@ -25,7 +31,6 @@ public abstract class AudioFilter
 	public void setInputProperties(AudioProperties properties)
 	{
 		this.properties = properties;
-		this.outProperties = properties.copy();
 	}
 	
 	public AudioProperties getOutputProperties()

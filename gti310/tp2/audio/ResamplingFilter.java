@@ -4,16 +4,53 @@ import java.lang.UnsupportedOperationException;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 
+import gti310.tp2.audio.AudioProperties.AudioFormat;
+
 public class ResamplingFilter extends AudioFilter
-{
+{	
+	public ResamplingFilter(int outSampleRate)
+	{
+		super();
+		
+		outProperties.SampleRate = outSampleRate;
+	}
+	
+	@Override
+	public void setInputProperties(AudioProperties properties)
+	{
+		super.setInputProperties(properties);
+		
+		if(outProperties.SampleRate > 0)
+		{
+			int outSampleRate = outProperties.SampleRate;
+			
+			outProperties = properties.copy();
+			outProperties.SampleRate = outSampleRate;
+		}
+	}
+
 	@Override
 	public byte[] process(byte[] input)
 	{
-		return process(input, 8000); // Default output sample rate of 8000 Hz
+		return process(input, outProperties.SampleRate); // Default output sample rate of 8000 Hz
 	}
 	
 	public byte[] process(byte[] input, int outSampleRate)
 	{
+		if(outSampleRate <= 0)
+		{
+			throw new IllegalArgumentException();	
+		}
+		
+		if(properties.Format != AudioFormat.WAVE_PCM)
+		{
+			try {
+				throw new UnsupportedFormatException();
+			} catch (UnsupportedFormatException e) {
+				System.err.println("Unsupported Format");
+			}
+		}
+		
 		if(outSampleRate == properties.SampleRate)
 		{
 			// No processing needed.

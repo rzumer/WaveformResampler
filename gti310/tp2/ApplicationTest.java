@@ -28,7 +28,7 @@ public class ApplicationTest {
 			FileSink output = new FileSink(OutputFileName);
 			
 			AudioController controller = new WaveController(input, output);
-			controller.applyFilter(new ResamplingFilter());
+			controller.applyFilter(new ResamplingFilter(8000));
 			controller.close();
 			
 			File outputFile = new File(OutputFileName);
