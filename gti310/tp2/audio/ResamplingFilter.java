@@ -1,13 +1,16 @@
 package gti310.tp2.audio;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import gti310.tp2.audio.AudioProperties.AudioFormat;
 
 public class ResamplingFilter extends AudioFilter
-{	
-	private byte[] lastFrameProcessed;
-	private int decimationOffset;
+{
+	private byte[] lastFrameProcessed; // Represents the last frame of the last segment processed with the filter, used for interpolation.
+	private int decimationOffset; // Represents the number of frames to skip initially during decimation.
 	
 	public ResamplingFilter(int outSampleRate)
 	{
@@ -23,6 +26,7 @@ public class ResamplingFilter extends AudioFilter
 	{
 		super.setInputProperties(properties);
 		
+		// Maintain the sample rate filter parameter even if the input changes.
 		if(outProperties.SampleRate > 0)
 		{
 			int outSampleRate = outProperties.SampleRate;
@@ -38,33 +42,51 @@ public class ResamplingFilter extends AudioFilter
 	@Override
 	public byte[] process(byte[] input)
 	{
-		return process(input, outProperties.SampleRate);
-	}
-	
-	// TODO Use ArrayList instead of regular arrays and counters.
-	public byte[] process(byte[] input, int outSampleRate)
-	{
-		if(outSampleRate <= 0)
+		if(outProperties.SampleRate <= 0)
 		{
 			throw new IllegalArgumentException();	
 		}
 		
 		if(properties.Format != AudioFormat.WAVE_PCM)
 		{
-			try {
+			try
+			{
 				throw new UnsupportedFormatException();
-			} catch (UnsupportedFormatException e) {
+			}
+			catch (UnsupportedFormatException e)
+			{
 				System.err.println("Unsupported Format");
 			}
 		}
 		
-		if(outSampleRate == properties.SampleRate)
+		if(outProperties.SampleRate == properties.SampleRate)
 		{
 			// No processing needed.
 			return input;
 		}
+		else if(outProperties.SampleRate < properties.SampleRate)
+		{
+			// Use the fast algorithm with linear interpolation.
+			try
+			{
+				return fastDownsample(input);
+			}
+			catch (IOException e) 
+			{
+				System.err.println("Error Writing Output Stream");
+				
+				// Fall back to the generic algorithm.
+				return resample(input);
+			}
+		}
 		
+		return resample(input);
+	}
+	
+	private byte[] resample(byte[] input)
+	{
 		// Note: it would be more efficient with linear interpolation to weigh samples directly using the input/output sample rate ratio.
+		int outSampleRate = outProperties.SampleRate;
 		int frameSize = properties.getFrameSize();
 		int sampleRateLCM = MathHelper.LeastCommonMultiple(properties.SampleRate, outSampleRate);
 		
@@ -135,8 +157,6 @@ public class ResamplingFilter extends AudioFilter
 			}
 		}
 		
-		// TODO proper low-pass filtering
-		
 		// Decimation
 		int decimationRate = sampleRateLCM / outSampleRate;
 		int outputSize = Math.round(((float)stuffedInput.length / decimationRate));
@@ -170,9 +190,92 @@ public class ResamplingFilter extends AudioFilter
 			decimatedInputPointer++;
 		}
 		
-		outProperties.SampleRate = outSampleRate;
 		lastFrameProcessed = Arrays.copyOfRange(input, input.length - frameSize, input.length);
 		
 		return downsampledInput;
+	}
+
+	private byte[] fastDownsample(byte[] input) throws IOException
+	{
+		int outSampleRate = outProperties.SampleRate;
+		float decimationRate = (float)properties.SampleRate / outSampleRate;
+		
+		ByteBuffer inputBuffer = ByteBuffer.wrap(input);
+		inputBuffer.order(properties.ByteOrder);
+		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+		
+		int frameCount = 0;
+		while(inputBuffer.remaining() >= decimationRate * properties.getFrameSize())
+		{
+			float framePointer = frameCount * decimationRate;
+			float weight = framePointer % 1;
+			int leftFrameNumber = Math.round(framePointer - weight);
+			int rightFrameNumber = leftFrameNumber + 1;
+			
+			// Get the frame values for each channel and insert them in the output stream.
+			// Keeps the right frame if it is needed for the next decimation phase.
+			
+			// Read samples in the left and right frames.
+			int[] leftSamples = readFrameSamples(inputBuffer, leftFrameNumber);
+			int[] rightSamples = readFrameSamples(inputBuffer, rightFrameNumber);
+
+			// Perform linear interpolation for each sample.
+			int[] interpolatedSamples = new int[leftSamples.length];
+			
+			for(int channel = 0; channel < leftSamples.length; channel++)
+			{
+				interpolatedSamples[channel] = MathHelper.InterpolateLinear(leftSamples[channel], rightSamples[channel], weight);
+				
+				// Write interpolated samples to the output stream.
+				if(properties.BitsPerSample <= 8)
+				{
+					outputStream.write((byte) interpolatedSamples[channel]);
+				}
+				else if(properties.BitsPerSample <= 16)
+				{
+					outputStream.write(ByteHelper.GetShortBytes((short) interpolatedSamples[channel], properties.ByteOrder));					
+				}
+				else
+				{
+					// Assuming data is in 32-bit signed integers.
+					outputStream.write(ByteHelper.GetIntBytes(interpolatedSamples[channel], properties.ByteOrder));
+				}
+			}
+			
+			frameCount++;
+			
+			if(frameCount > input.length)
+			{
+				throw new IndexOutOfBoundsException();
+			}
+		}
+		
+		return outputStream.toByteArray();
+	}
+	
+	private int[] readFrameSamples(ByteBuffer buffer, int frameNumber)
+	{
+		buffer.position(frameNumber * properties.getFrameSize());
+		
+		int[] samples = new int[properties.NumChannels];
+		
+		for(int channel = 0; channel < properties.NumChannels; channel++)
+		{
+			if(properties.BitsPerSample <= 8)
+			{
+				samples[channel] = buffer.get() & 0xff;
+			}
+			else if(properties.BitsPerSample <= 16)
+			{
+				samples[channel] = buffer.getShort();
+			}
+			else
+			{
+				// Assuming data is in 32-bit signed integers.
+				samples[channel] = buffer.getInt();
+			}
+		}
+		
+		return samples;
 	}
 }
