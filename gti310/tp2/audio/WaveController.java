@@ -51,9 +51,10 @@ public class WaveController extends AudioController
 	@Override
 	public void applyFilter(AudioFilter filter)
 	{
+		// Set audio properties for the filter.
 		filter.setInputProperties(properties);
 		
-		// Apply the filter
+		// Apply the filter by 1 second segments.
 		byte[] bytesPopped = null;
 		
 		while(fileSource.bytesRemaining() > 0)
@@ -64,7 +65,7 @@ public class WaveController extends AudioController
 			fileSink.push(bytesToPush);
 		}
 		
-		// Update properties if they were changed while applying the filter.
+		// Update properties with the filter's output.
 		properties = filter.getOutputProperties();
 	}
 	

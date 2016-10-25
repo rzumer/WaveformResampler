@@ -1,16 +1,13 @@
 package gti310.tp2.audio;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import gti310.tp2.audio.AudioProperties.AudioFormat;
 
 public class ResamplingFilter extends AudioFilter
 {
-	private byte[] lastFrameProcessed; // Represents the last frame of the last segment processed with the filter, used for interpolation.
-	private int decimationOffset; // Represents the number of frames to skip initially during decimation.
+	protected byte[] lastFrameProcessed; // Represents the last frame of the last segment processed with the filter, used for interpolation.
+	protected int decimationOffset; // Represents the number of frames to skip initially during decimation.
 	
 	public ResamplingFilter(int outSampleRate)
 	{
@@ -64,7 +61,8 @@ public class ResamplingFilter extends AudioFilter
 			// No processing needed.
 			return input;
 		}
-		else if(outProperties.SampleRate < properties.SampleRate)
+		
+		/*else if(outProperties.SampleRate < properties.SampleRate)
 		{
 			// Use the fast algorithm with linear interpolation.
 			try
@@ -80,11 +78,8 @@ public class ResamplingFilter extends AudioFilter
 			}
 		}
 		
-		return resample(input);
-	}
-	
-	private byte[] resample(byte[] input)
-	{
+		return resample(input);*/
+		
 		// Note: it would be more efficient with linear interpolation to weigh samples directly using the input/output sample rate ratio.
 		int outSampleRate = outProperties.SampleRate;
 		int frameSize = properties.getFrameSize();
@@ -193,89 +188,5 @@ public class ResamplingFilter extends AudioFilter
 		lastFrameProcessed = Arrays.copyOfRange(input, input.length - frameSize, input.length);
 		
 		return downsampledInput;
-	}
-
-	private byte[] fastDownsample(byte[] input) throws IOException
-	{
-		int outSampleRate = outProperties.SampleRate;
-		float decimationRate = (float)properties.SampleRate / outSampleRate;
-		
-		ByteBuffer inputBuffer = ByteBuffer.wrap(input);
-		inputBuffer.order(properties.ByteOrder);
-		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-		
-		int frameCount = 0;
-		while(inputBuffer.remaining() >= decimationRate * properties.getFrameSize())
-		{
-			float framePointer = frameCount * decimationRate;
-			float weight = framePointer % 1;
-			int leftFrameNumber = Math.round(framePointer - weight);
-			int rightFrameNumber = leftFrameNumber + 1;
-			
-			// Get the frame values for each channel and insert them in the output stream.
-			// Keeps the right frame if it is needed for the next decimation phase.
-			
-			// Read samples in the left and right frames.
-			int[] leftSamples = readFrameSamples(inputBuffer, leftFrameNumber);
-			int[] rightSamples = readFrameSamples(inputBuffer, rightFrameNumber);
-
-			// Perform linear interpolation for each sample.
-			int[] interpolatedSamples = new int[leftSamples.length];
-			
-			for(int channel = 0; channel < leftSamples.length; channel++)
-			{
-				interpolatedSamples[channel] = MathHelper.InterpolateLinear(leftSamples[channel], rightSamples[channel], weight);
-				
-				// Write interpolated samples to the output stream.
-				if(properties.BitsPerSample <= 8)
-				{
-					outputStream.write((byte) interpolatedSamples[channel]);
-				}
-				else if(properties.BitsPerSample <= 16)
-				{
-					outputStream.write(ByteHelper.GetShortBytes((short) interpolatedSamples[channel], properties.ByteOrder));					
-				}
-				else
-				{
-					// Assuming data is in 32-bit signed integers.
-					outputStream.write(ByteHelper.GetIntBytes(interpolatedSamples[channel], properties.ByteOrder));
-				}
-			}
-			
-			frameCount++;
-			
-			if(frameCount > input.length)
-			{
-				throw new IndexOutOfBoundsException();
-			}
-		}
-		
-		return outputStream.toByteArray();
-	}
-	
-	private int[] readFrameSamples(ByteBuffer buffer, int frameNumber)
-	{
-		buffer.position(frameNumber * properties.getFrameSize());
-		
-		int[] samples = new int[properties.NumChannels];
-		
-		for(int channel = 0; channel < properties.NumChannels; channel++)
-		{
-			if(properties.BitsPerSample <= 8)
-			{
-				samples[channel] = buffer.get() & 0xff;
-			}
-			else if(properties.BitsPerSample <= 16)
-			{
-				samples[channel] = buffer.getShort();
-			}
-			else
-			{
-				// Assuming data is in 32-bit signed integers.
-				samples[channel] = buffer.getInt();
-			}
-		}
-		
-		return samples;
 	}
 }
