@@ -1,5 +1,8 @@
 package gti310.tp2.audio;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
 final class MathHelper
 {
 	public static int LeastCommonMultiple(int a, int b)
@@ -31,5 +34,17 @@ final class MathHelper
 		}
 		
 		return (int) Math.round(a + ((double)(b - a) * d));
+	}
+	
+	public static double Round(double value, int decimalPlaces)
+	{
+	    if (decimalPlaces < 0)
+    	{
+	    	throw new IllegalArgumentException();
+    	}
+
+	    BigDecimal bdValue = new BigDecimal(value);
+	    bdValue = bdValue.setScale(decimalPlaces, RoundingMode.HALF_UP);
+	    return bdValue.doubleValue();
 	}
 }

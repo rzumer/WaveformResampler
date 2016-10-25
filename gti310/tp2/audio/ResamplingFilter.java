@@ -62,25 +62,12 @@ public class ResamplingFilter extends AudioFilter
 			return input;
 		}
 		
-		/*else if(outProperties.SampleRate < properties.SampleRate)
+		if(outProperties.BitsPerSample > 16)
 		{
-			// Use the fast algorithm with linear interpolation.
-			try
-			{
-				return fastDownsample(input);
-			}
-			catch (IOException e) 
-			{
-				System.err.println("Error Writing Output Stream");
-				
-				// Fall back to the generic algorithm.
-				return resample(input);
-			}
+			// 24-bit input processing causes an array out of bounds exception.
+			throw new UnsupportedOperationException();
 		}
 		
-		return resample(input);*/
-		
-		// Note: it would be more efficient with linear interpolation to weigh samples directly using the input/output sample rate ratio.
 		int outSampleRate = outProperties.SampleRate;
 		int frameSize = properties.getFrameSize();
 		int sampleRateLCM = MathHelper.LeastCommonMultiple(properties.SampleRate, outSampleRate);
@@ -122,12 +109,17 @@ public class ResamplingFilter extends AudioFilter
 
 			for(int channel = 0; channel < properties.NumChannels; channel++)
 			{
-				int leftSample = ByteHelper.GetIntFromBytes(
+				int leftSample = properties.BitsPerSample > 8 ? ByteHelper.GetIntFromBytes(
 						Arrays.copyOfRange(leftFrame, channel * properties.getChannelSize(), (channel + 1) * properties.getChannelSize()), 
-						properties.ByteOrder, properties.BitsPerSample > 8);
-				int rightSample = rightFrame == null ? ByteHelper.GetZeroByte(properties.BitsPerSample > 8) : ByteHelper.GetIntFromBytes(
-						Arrays.copyOfRange(rightFrame, channel * properties.getChannelSize(), (channel + 1) * properties.getChannelSize()),
-						properties.ByteOrder, properties.BitsPerSample > 8);
+						properties.ByteOrder) : ByteHelper.GetUnsignedIntFromByte(leftFrame[channel]);
+				int rightSample = rightFrame == null ?
+						ByteHelper.GetZeroByte(properties.BitsPerSample > 8) : 
+						properties.BitsPerSample > 8 ?
+						ByteHelper.GetIntFromBytes(Arrays.copyOfRange(
+								rightFrame, 
+								channel * properties.getChannelSize(), 
+								(channel + 1) * properties.getChannelSize()), properties.ByteOrder) : 
+						ByteHelper.GetUnsignedIntFromByte(rightFrame[channel]);
 				
 				for(int k = 0; k < (padding / frameSize); k++)
 				{

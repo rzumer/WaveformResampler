@@ -9,7 +9,7 @@ public abstract class AudioController
 	protected FileSink fileSink;
 	protected AudioProperties properties;
 	
-	public AudioController(FileSource source, FileSink sink) throws HeaderFormatException, UnsupportedFormatException
+	public AudioController(FileSource source, FileSink sink)
 	{
 		if(source == null || sink == null)
 		{
@@ -23,7 +23,7 @@ public abstract class AudioController
 		initializeProperties();
 	}
 	
-	protected abstract void initializeProperties() throws HeaderFormatException, UnsupportedFormatException;
+	protected abstract void initializeProperties();
 	
 	public abstract void applyFilter(AudioFilter filter);
 	

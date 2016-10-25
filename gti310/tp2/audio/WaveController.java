@@ -1,10 +1,12 @@
 package gti310.tp2.audio;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 
@@ -20,37 +22,226 @@ public class WaveController extends AudioController
 	}
 	
 	@Override
-	protected void initializeProperties() throws HeaderFormatException, UnsupportedFormatException
+	protected void initializeProperties()
 	{
-		// TODO may have extra metadata, search for subchunk 2 instead ("data")
-		byte[] header = fileSource.pop(44);
+		// Reset properties to default values.
+		properties = new AudioProperties();
 		
 		try
 		{
-			// Check that the file has a valid PCM WAVE header
-			String format = new String(Arrays.copyOfRange(header, 8, 12), "US-ASCII");
+			// Attempt to retrieve the header from the start of the file to the data chunk ID.
+			byte[] header = popHeader();
 			
-			if(!format.equals("WAVE") || 
-					ByteHelper.GetIntFromBytes(Arrays.copyOfRange(header, 20, 22), 
-					ByteOrder.LITTLE_ENDIAN) != 1)
+			// Validate the header contents.
+			if(!validateHeader(header))
 			{
 				throw new HeaderFormatException();
 			}
+			
+			// Assign header values to properties.
+			properties.Format = AudioFormat.WAVE_PCM;
+			properties.ByteOrder = ByteOrder.LITTLE_ENDIAN;
+			properties.NumChannels = (short) ByteHelper.GetIntFromBytes(Arrays.copyOfRange(header, 22, 24), ByteOrder.LITTLE_ENDIAN);
+			properties.SampleRate = ByteHelper.GetIntFromBytes(Arrays.copyOfRange(header, 24, 28), ByteOrder.LITTLE_ENDIAN);
+			properties.BitsPerSample = (short) ByteHelper.GetIntFromBytes(Arrays.copyOfRange(header, 34, 36), ByteOrder.LITTLE_ENDIAN);
 		}
-		catch (UnsupportedEncodingException e)
+		catch (IOException e)
 		{
-			e.printStackTrace();
+			System.err.println("Header Read Error");
+		}
+		catch (HeaderFormatException e)
+		{
+			System.err.println("Invalid WAVE Header");
+		}
+		catch (UnsupportedFormatException e)
+		{
+			System.err.println("Unsupported Format");
+		}
+	}
+	
+	private byte[] popHeader() throws IOException, HeaderFormatException
+	{
+		// Main header buffer for iterating through fields
+		ByteArrayOutputStream headerStream = new ByteArrayOutputStream();
+		// Secondary buffer for parsing values
+		byte[] headerField;
+		
+		do
+		{
+			if(fileSource.bytesRemaining() < 4)
+			{
+				throw new HeaderFormatException();
+			}
+		
+			// 2-byte header fields come in pairs, so parsing 4 bytes at a time should be enough.
+			headerField = fileSource.pop(4);
+			headerStream.write(headerField);
+		}
+		while(!new String(headerField, "US-ASCII").equals("data"));
+		
+		// Write the last header bytes (data length).
+		headerField = fileSource.pop(4);
+		headerStream.write(headerField);
+		
+		return headerStream.toByteArray();
+	}
+	
+	private boolean validateHeader(byte[] header) throws UnsupportedEncodingException, UnsupportedFormatException
+	{
+		// Main header buffer for iterating through fields
+		ByteBuffer headerBuffer = ByteBuffer.wrap(header);
+		
+		// Secondary buffers for parsing multibyte values
+		byte[] field = new byte[4];
+		byte[] longField = new byte[16];
+		byte[] shortField = new byte[2];
+		
+		// The first field of each chunk is read in a loop, in order to account for extra data or offsets in the file header.
+		
+		// RIFF Chunk ID
+		do
+		{
+			if(!headerBuffer.hasRemaining())
+			{
+				return false;
+			}
+			
+			headerBuffer.get(field);
+		}
+		while(!new String(field, "US-ASCII").equals("RIFF"));
+		
+		// RIFF Chunk Size
+		headerBuffer.get(field);
+		
+		// WAVE ID
+		headerBuffer.get(field);
+		
+		if(!new String(field, "US-ASCII").equals("WAVE"))
+		{
+			return false;
 		}
 		
-		properties.Format = AudioFormat.WAVE_PCM;
-		properties.NumChannels = (short) ByteHelper.GetIntFromBytes(Arrays.copyOfRange(header, 22, 24), ByteOrder.LITTLE_ENDIAN);
-		properties.SampleRate = ByteHelper.GetIntFromBytes(Arrays.copyOfRange(header, 24, 28), ByteOrder.LITTLE_ENDIAN);
-		properties.BitsPerSample = (short) ByteHelper.GetIntFromBytes(Arrays.copyOfRange(header, 34, 36), ByteOrder.LITTLE_ENDIAN);
+		// FMT Chunk ID
+		do
+		{
+			if(!headerBuffer.hasRemaining())
+			{
+				return false;
+			}
+			
+			headerBuffer.get(field);
+		}
+		while(!new String(field, "US-ASCII").equals("fmt "));
+		
+		// FMT Chunk Size
+		headerBuffer.get(field);
+		int fmtChunkSize = ByteHelper.GetIntFromBytes(field, ByteOrder.LITTLE_ENDIAN);
+		
+		// Only PCM (16) is supported.
+		switch(fmtChunkSize)
+		{
+			case 16:
+				break;
+			case 18:
+				throw new UnsupportedFormatException();
+			case 40:
+				throw new UnsupportedFormatException();
+			default:
+				return false;
+		}
+		
+		// Audio Format Code
+		headerBuffer.get(shortField);
+		int audioFormat = ByteHelper.GetIntFromBytes(shortField, ByteOrder.LITTLE_ENDIAN);
+		
+		// Only PCM (1) is supported.
+		if(audioFormat != 1)
+		{
+			return false;
+		}
+		
+		// Number of Channels
+		headerBuffer.get(shortField);
+		
+		// Sampling Rate
+		headerBuffer.get(field);
+		
+		// Data Rate
+		headerBuffer.get(field);
+		
+		// Block Size
+		headerBuffer.get(shortField);
+		
+		// Bits Per Sample
+		headerBuffer.get(shortField);
+		
+		if(fmtChunkSize >= 18)
+		{
+			// cbSize (Extension Size)
+			headerBuffer.get(shortField);
+			
+			if(fmtChunkSize >= 40)
+			{
+				// Valid Bits Per Sample
+				headerBuffer.get(shortField);
+				
+				// Speaker Position Mask
+				headerBuffer.get(field);
+				
+				// SubFormat
+				headerBuffer.get(longField);
+			}
+		}
+		
+		// Fact Chunk (for non-PCM formats)
+		if(audioFormat != 1)
+		{
+			// Fact Chunk ID
+			do
+			{
+				if(!headerBuffer.hasRemaining())
+				{
+					return false;
+				}
+				
+				headerBuffer.get(field);
+			}
+			while(!new String(field, "US-ASCII").equals("fact"));
+			
+			// Fact Chunk Size
+			headerBuffer.get(field);
+			
+			// Sample Length
+			headerBuffer.get(field);
+		}
+		
+		// Data Chunk ID
+		do
+		{
+			if(!headerBuffer.hasRemaining())
+			{
+				return false;
+			}
+			
+			headerBuffer.get(field);
+		}
+		while(!new String(field, "US-ASCII").equals("data"));
+		
+		// Data Chunk Size
+		headerBuffer.get(field);
+		
+		return true;
 	}
 
 	@Override
 	public void applyFilter(AudioFilter filter)
 	{
+		if(properties.Format != AudioFormat.WAVE_PCM)
+		{
+			System.err.println("Cannot Apply Filter");
+			return;
+		}
+		
 		// Set audio properties for the filter.
 		filter.setInputProperties(properties);
 		
@@ -83,10 +274,10 @@ public class WaveController extends AudioController
 			
 			fs.push(header);
 			
-			// TODO write faster
 			while(fis.available() > 0)
 			{
-				byte[] buffer = new byte[10000];
+				// Write in 1 second segments.
+				byte[] buffer = new byte[properties.SampleRate];
 				int bytesRead = fis.read(buffer);
 				
 				fs.push(Arrays.copyOfRange(buffer, 0, bytesRead));

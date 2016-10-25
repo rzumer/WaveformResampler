@@ -6,6 +6,7 @@ public class AudioProperties
 {
 	public static enum AudioFormat
 	{
+		NONE,
 		WAVE_PCM
 	};
 	

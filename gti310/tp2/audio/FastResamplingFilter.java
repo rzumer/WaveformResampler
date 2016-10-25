@@ -28,6 +28,11 @@ public class FastResamplingFilter extends ResamplingFilter
 	@Override
 	public byte[] process(byte[] input)
 	{
+		if(outProperties.BitsPerSample > 16)
+		{
+			throw new UnsupportedOperationException();
+		}
+		
 		int outSampleRate = outProperties.SampleRate;
 		int frameSize = properties.getFrameSize();
 		double decimationRate = (double)properties.SampleRate / outSampleRate;
@@ -40,7 +45,7 @@ public class FastResamplingFilter extends ResamplingFilter
 		while(inputBuffer.remaining() > frameSize)
 		{
 			double framePointer = (double)segmentOffset + (frameCount * decimationRate);
-			double weight = framePointer % 1;
+			double weight = MathHelper.Round(framePointer % 1, 6);
 			
 			int leftFrameNumber = (int) Math.round(framePointer - weight);
 			int rightFrameNumber = leftFrameNumber + 1;
@@ -63,28 +68,31 @@ public class FastResamplingFilter extends ResamplingFilter
 			{
 				interpolatedSamples[channel] = weight > 0 ? MathHelper.InterpolateLinear(leftSamples[channel], rightSamples[channel], ((weight + 1) % 1)) : leftSamples[channel];
 				
-				// Write interpolated samples to the output stream.
-				if(properties.BitsPerSample <= 8)
+				try
 				{
-					outputStream.write((byte) interpolatedSamples[channel]);
-				}
-				else if(properties.BitsPerSample <= 16)
-				{
-					try {
+					// Write interpolated samples to the output stream.
+					if(properties.BitsPerSample <= 8)
+					{
+						outputStream.write((byte) interpolatedSamples[channel]);
+					}
+					else if(properties.BitsPerSample <= 16)
+					{
 						outputStream.write(ByteHelper.GetShortBytes((short) interpolatedSamples[channel], properties.ByteOrder));
-					} catch (IOException e) {
-						System.err.println("Error Writing Output Stream");
 					}
-				}
-				else
-				{
-					// Assuming data is in 32-bit signed integers.
-					try {
+					else if(properties.BitsPerSample <= 24)
+					{
+						outputStream.write(ByteHelper.GetNumberBytes(interpolatedSamples[channel], properties.ByteOrder, 3));
+					}
+					else
+					{
+						// Assuming 32-bit signed integers.
 						outputStream.write(ByteHelper.GetIntBytes(interpolatedSamples[channel], properties.ByteOrder));
-					} catch (IOException e) {
-						System.err.println("Error Writing Output Stream");
 					}
 				}
+				catch (IOException e)
+				{
+					System.err.println("Error Writing Output Stream");
+				}	
 			}
 			
 			// Basic depth checking.
@@ -120,9 +128,16 @@ public class FastResamplingFilter extends ResamplingFilter
 			{
 				samples[channel] = buffer.getShort();
 			}
+			else if(properties.BitsPerSample <= 24)
+			{
+				byte[] sampleBytes = new byte[3];
+				buffer.get(sampleBytes);
+				
+				samples[channel] = ByteHelper.GetIntFromBytes(sampleBytes, buffer.order());
+			}
 			else
 			{
-				// Assuming data is in 32-bit signed integers.
+				// Assuming 32-bit signed integers.
 				samples[channel] = buffer.getInt();
 			}
 		}

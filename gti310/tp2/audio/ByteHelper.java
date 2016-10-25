@@ -6,32 +6,54 @@ import java.nio.ByteOrder;
 
 final class ByteHelper 
 {
-	public static int GetIntFromBytes(byte[] data, ByteOrder byteOrder, boolean signed)
+	public static int GetIntFromBytes(byte[] data, ByteOrder byteOrder)
 	{
 		if(data == null || data.length == 0)
 		{
 			return 0;
 		}
 		
-		if(data.length == 1)
-		{
-			return signed ? data[0] : (int)data[0] & 0xff;
-		}
-		
 		ByteBuffer dataBuffer = ByteBuffer.wrap(data);
 		dataBuffer.order(byteOrder);
 		
-		if(data.length < 4)
+		switch(data.length)
 		{
-			return signed ? dataBuffer.getShort() : ((int)dataBuffer.getShort() & 0xffff);
+			case 1:
+				return dataBuffer.get();
+			case 2:
+				return dataBuffer.getShort();
+			case 3:
+				byte[] buf = new byte[3];
+				dataBuffer.get(buf);
+				
+				if(byteOrder == ByteOrder.LITTLE_ENDIAN)
+				{
+					return buf[2] << 16 | buf[1] << 8 | buf[0];					
+				}
+				
+				return buf[0] << 16 | buf[1] << 8 | buf[2];
+			case 4:
+				return dataBuffer.getInt();
+			default:
+				throw new IllegalArgumentException();	
 		}
-		
-		return signed ? dataBuffer.getInt() : (dataBuffer.getInt() & 0xffff);
 	}
 	
-	public static int GetIntFromBytes(byte[] data, ByteOrder byteOrder)
+	public static int GetUnsignedIntFromByte(byte data)
 	{
-		return GetIntFromBytes(data, byteOrder, true);
+		return (int)data & 0xff;
+	}
+	
+	public static byte[] GetNumberBytes(long data, ByteOrder byteOrder, int byteCount)
+	{
+		byte[] dataBytes = new byte[byteCount];
+		
+		for(int i = 0; i < byteCount; i++)
+		{
+			dataBytes[i] = (byte) ((data >> (i * 8)) & 0xff);
+		}
+		
+		return dataBytes;
 	}
 	
 	public static byte[] GetIntBytes(int data, ByteOrder byteOrder)
