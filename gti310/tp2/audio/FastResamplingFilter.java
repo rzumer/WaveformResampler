@@ -8,7 +8,7 @@ import java.util.Arrays;
 public class FastResamplingFilter extends ResamplingFilter
 {
 	private byte[] lastFrameProcessed; // Represents the last frame of the last segment processed with the filter, used for interpolation.
-	private float segmentOffset; // Used to balance the frame selection between segments.
+	private double segmentOffset; // Used to balance the frame selection between segments.
 	
 	public FastResamplingFilter(int outSampleRate)
 	{
@@ -30,7 +30,7 @@ public class FastResamplingFilter extends ResamplingFilter
 	{
 		int outSampleRate = outProperties.SampleRate;
 		int frameSize = properties.getFrameSize();
-		float decimationRate = (float)properties.SampleRate / outSampleRate;
+		double decimationRate = (double)properties.SampleRate / outSampleRate;
 		
 		ByteBuffer inputBuffer = ByteBuffer.wrap(input);
 		inputBuffer.order(properties.ByteOrder);
@@ -39,10 +39,10 @@ public class FastResamplingFilter extends ResamplingFilter
 		int frameCount = 0;
 		while(inputBuffer.remaining() > frameSize)
 		{
-			float framePointer = segmentOffset + (frameCount * decimationRate);
-			float weight = framePointer % 1;
+			double framePointer = (double)segmentOffset + (frameCount * decimationRate);
+			double weight = framePointer % 1;
 			
-			int leftFrameNumber = Math.round(framePointer - weight);
+			int leftFrameNumber = (int) Math.round(framePointer - weight);
 			int rightFrameNumber = leftFrameNumber + 1;
 			
 			// The while check is insufficient to ensure that both the new left frame and the right frame, if one is needed, are present in this segment.
@@ -88,7 +88,7 @@ public class FastResamplingFilter extends ResamplingFilter
 			}
 			
 			// Basic depth checking.
-			if(frameCount++ > Math.round((float)input.length / (decimationRate * frameSize) - segmentOffset))
+			if(frameCount++ > Math.round((double)input.length / (decimationRate * frameSize) - segmentOffset))
 			{
 				throw new IndexOutOfBoundsException();
 			}
@@ -98,7 +98,7 @@ public class FastResamplingFilter extends ResamplingFilter
 		}
 		
 		lastFrameProcessed = Arrays.copyOfRange(input, input.length - frameSize, input.length);
-		segmentOffset -= ((input.length / (decimationRate * frameSize)) - (frameCount)) * decimationRate;
+		segmentOffset -= ((input.length / (decimationRate * frameSize) - (frameCount))) * decimationRate;
 		
 		return outputStream.toByteArray();
 	}

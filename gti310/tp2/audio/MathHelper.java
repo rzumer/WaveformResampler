@@ -19,17 +19,17 @@ final class MathHelper
 		return a;
 	}
 	
-	public static int InterpolateLinear(int a, int b, float weight)
+	public static int InterpolateLinear(int a, int b, double d)
 	{
-		if(weight <= 0)
+		if(d <= 0)
 		{
 			return a;
 		}
-		else if(weight >= 1)
+		else if(d >= 1)
 		{
 			return b;
 		}
 		
-		return Math.round(a + ((float)(b - a) * weight));
+		return (int) Math.round(a + ((double)(b - a) * d));
 	}
 }

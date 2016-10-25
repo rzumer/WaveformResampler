@@ -136,7 +136,7 @@ public class ResamplingFilter extends AudioFilter
 					if(index + properties.getChannelSize() <= stuffedInput.length)
 					{
 						int interpolatedSample = MathHelper.InterpolateLinear(leftSample, rightSample, 
-								(float)(k + 1) / ((padding / frameSize) + 1));
+								(double)(k + 1) / ((padding / frameSize) + 1));
 						
 						byte[] interpolatedBytes = properties.BitsPerSample == 8 ?
 								new byte[] { (byte)interpolatedSample } : properties.BitsPerSample == 16 ? 
@@ -154,7 +154,7 @@ public class ResamplingFilter extends AudioFilter
 		
 		// Decimation
 		int decimationRate = sampleRateLCM / outSampleRate;
-		int outputSize = Math.round(((float)stuffedInput.length / decimationRate));
+		int outputSize = (int) Math.round(((double)stuffedInput.length / decimationRate));
 		
 		// Add extra bytes if the end of the file is uneven.
 		while(outputSize % frameSize != 0)
