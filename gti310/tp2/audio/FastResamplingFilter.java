@@ -9,6 +9,7 @@ public class FastResamplingFilter extends ResamplingFilter
 {
 	private byte[] lastFrameProcessed; // Represents the last frame of the last segment processed with the filter, used for interpolation.
 	private double segmentOffset; // Used to balance the frame selection between segments.
+	private static int DecimalPlaces = 6;
 	
 	public FastResamplingFilter(int outSampleRate)
 	{
@@ -30,7 +31,12 @@ public class FastResamplingFilter extends ResamplingFilter
 	{
 		if(outProperties.BitsPerSample > 16)
 		{
-			throw new UnsupportedOperationException();
+			//throw new UnsupportedOperationException();
+		}
+		
+		if(outProperties.SampleRate == properties.SampleRate)
+		{
+			return input;
 		}
 		
 		int outSampleRate = outProperties.SampleRate;
@@ -44,21 +50,20 @@ public class FastResamplingFilter extends ResamplingFilter
 		int frameCount = 0;
 		while(inputBuffer.remaining() > frameSize)
 		{
-			double framePointer = (double)segmentOffset + (frameCount * decimationRate);
-			double weight = MathHelper.Round(framePointer % 1, 6);
+			double framePointer = MathHelper.Round((double)segmentOffset + (frameCount * decimationRate), DecimalPlaces);
+			double weight = MathHelper.Round(framePointer % 1, DecimalPlaces);
 			
 			int leftFrameNumber = (int) Math.round(framePointer - weight);
 			int rightFrameNumber = leftFrameNumber + 1;
 			
 			// The while check is insufficient to ensure that both the new left frame and the right frame, if one is needed, are present in this segment.
-			if(inputBuffer.limit() <= (weight > 0 ? rightFrameNumber : leftFrameNumber) * frameSize)
+			if(inputBuffer.limit() < (weight > 0 ? rightFrameNumber : leftFrameNumber) * frameSize + frameSize)
 			{
 				break;
 			}
 			
 			// Read samples in the left and right frames.
-			int[] leftSamples = leftFrameNumber < 0 ? 
-					readFrameSamples(lastFrameProcessed) : readFrameSamples(inputBuffer, leftFrameNumber);
+			int[] leftSamples = leftFrameNumber < 0 ? readFrameSamples(lastFrameProcessed) : readFrameSamples(inputBuffer, leftFrameNumber);
 			int[] rightSamples = weight > 0 ? readFrameSamples(inputBuffer, rightFrameNumber) : null;
 
 			// Perform linear interpolation for each sample.
@@ -133,7 +138,7 @@ public class FastResamplingFilter extends ResamplingFilter
 				byte[] sampleBytes = new byte[3];
 				buffer.get(sampleBytes);
 				
-				samples[channel] = ByteHelper.GetIntFromBytes(sampleBytes, buffer.order());
+				samples[channel] = ByteHelper.GetIntFromBytes(sampleBytes, properties.ByteOrder);
 			}
 			else
 			{

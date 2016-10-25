@@ -44,13 +44,13 @@ final class ByteHelper
 		return (int)data & 0xff;
 	}
 	
-	public static byte[] GetNumberBytes(long data, ByteOrder byteOrder, int byteCount)
-	{
+	public static byte[] GetNumberBytes(int data, ByteOrder byteOrder, int byteCount)
+	{		
 		byte[] dataBytes = new byte[byteCount];
 		
 		for(int i = 0; i < byteCount; i++)
 		{
-			dataBytes[i] = (byte) ((data >> (i * 8)) & 0xff);
+			dataBytes[i] = (byte) (data >> (i * 8));
 		}
 		
 		return dataBytes;
