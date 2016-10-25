@@ -7,7 +7,8 @@ import java.util.Arrays;
 
 public class FastResamplingFilter extends ResamplingFilter
 {
-	private float segmentOffset;
+	private byte[] lastFrameProcessed; // Represents the last frame of the last segment processed with the filter, used for interpolation.
+	private float segmentOffset; // Used to balance the frame selection between segments.
 	
 	public FastResamplingFilter(int outSampleRate)
 	{
@@ -36,78 +37,68 @@ public class FastResamplingFilter extends ResamplingFilter
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 		
 		int frameCount = 0;
-		while(inputBuffer.remaining() >= (2 * decimationRate * frameSize + 1))
+		while(inputBuffer.remaining() > frameSize)
 		{
-			//System.out.println(inputBuffer.remaining());
 			float framePointer = segmentOffset + (frameCount * decimationRate);
 			float weight = framePointer % 1;
+			
 			int leftFrameNumber = Math.round(framePointer - weight);
 			int rightFrameNumber = leftFrameNumber + 1;
 			
-			// Write the left frame into the output stream if it does not need to be interpolated.
-			if(Math.round(weight) == 0)
+			// The while check is insufficient to ensure that both the new left frame and the right frame, if one is needed, are present in this segment.
+			if(inputBuffer.limit() <= (weight > 0 ? rightFrameNumber : leftFrameNumber) * frameSize)
 			{
-				byte[] leftFrame = new byte[frameSize];
-				inputBuffer.get(leftFrame);
-				
-				try {
-					outputStream.write(leftFrame);
-				} catch (IOException e) {
-					System.err.println("Error Writing Output Stream");
-				}
+				break;
 			}
-			else
+			
+			// Read samples in the left and right frames.
+			int[] leftSamples = leftFrameNumber < 0 ? 
+					readFrameSamples(lastFrameProcessed) : readFrameSamples(inputBuffer, leftFrameNumber);
+			int[] rightSamples = weight > 0 ? readFrameSamples(inputBuffer, rightFrameNumber) : null;
+
+			// Perform linear interpolation for each sample.
+			int[] interpolatedSamples = new int[leftSamples.length];
+			
+			for(int channel = 0; channel < leftSamples.length; channel++)
 			{
-				// Read samples in the left and right frames.
-				int[] leftSamples = leftFrameNumber < 0 ? 
-						readFrameSamples(lastFrameProcessed) : readFrameSamples(inputBuffer, leftFrameNumber);
-				int[] rightSamples = readFrameSamples(inputBuffer, rightFrameNumber);
-	
-				// Perform linear interpolation for each sample.
-				int[] interpolatedSamples = new int[leftSamples.length];
+				interpolatedSamples[channel] = weight > 0 ? MathHelper.InterpolateLinear(leftSamples[channel], rightSamples[channel], ((weight + 1) % 1)) : leftSamples[channel];
 				
-				for(int channel = 0; channel < leftSamples.length; channel++)
+				// Write interpolated samples to the output stream.
+				if(properties.BitsPerSample <= 8)
 				{
-					interpolatedSamples[channel] = MathHelper.InterpolateLinear(leftSamples[channel], rightSamples[channel], weight);
-					
-					// Write interpolated samples to the output stream.
-					if(properties.BitsPerSample <= 8)
-					{
-						outputStream.write((byte) interpolatedSamples[channel]);
+					outputStream.write((byte) interpolatedSamples[channel]);
+				}
+				else if(properties.BitsPerSample <= 16)
+				{
+					try {
+						outputStream.write(ByteHelper.GetShortBytes((short) interpolatedSamples[channel], properties.ByteOrder));
+					} catch (IOException e) {
+						System.err.println("Error Writing Output Stream");
 					}
-					else if(properties.BitsPerSample <= 16)
-					{
-						try {
-							outputStream.write(ByteHelper.GetShortBytes((short) interpolatedSamples[channel], properties.ByteOrder));
-						} catch (IOException e) {
-							System.err.println("Error Writing Output Stream");
-						}					
-					}
-					else
-					{
-						// Assuming data is in 32-bit signed integers.
-						try {
-							outputStream.write(ByteHelper.GetIntBytes(interpolatedSamples[channel], properties.ByteOrder));
-						} catch (IOException e) {
-							System.err.println("Error Writing Output Stream");
-						}
+				}
+				else
+				{
+					// Assuming data is in 32-bit signed integers.
+					try {
+						outputStream.write(ByteHelper.GetIntBytes(interpolatedSamples[channel], properties.ByteOrder));
+					} catch (IOException e) {
+						System.err.println("Error Writing Output Stream");
 					}
 				}
 			}
 			
-			frameCount++;
-			
-			if(frameCount > Math.round((float)input.length / (decimationRate * frameSize)))
+			// Basic depth checking.
+			if(frameCount++ > Math.round((float)input.length / (decimationRate * frameSize) - segmentOffset))
 			{
 				throw new IndexOutOfBoundsException();
 			}
 			
 			// Place the buffer back to the first byte of the left frame.
-			inputBuffer.position(leftFrameNumber * properties.getFrameSize());
+			inputBuffer.position(Math.max(leftFrameNumber * frameSize, 0));
 		}
 		
 		lastFrameProcessed = Arrays.copyOfRange(input, input.length - frameSize, input.length);
-		segmentOffset = ((input.length - (decimationRate * frameSize) - inputBuffer.position()) / frameSize) * -1;
+		segmentOffset -= ((input.length / (decimationRate * frameSize)) - (frameCount)) * decimationRate;
 		
 		return outputStream.toByteArray();
 	}

@@ -31,7 +31,7 @@ public class Application {
 			FileSink output = new FileSink(tempFile.getAbsolutePath());
 			
 			AudioController controller = new WaveController(input, output);
-			controller.applyFilter(new ResamplingFilter(8000));
+			controller.applyFilter(new FastResamplingFilter(8000));
 			controller.saveToFile(outputFileName);
 			
 			System.out.println("Done");

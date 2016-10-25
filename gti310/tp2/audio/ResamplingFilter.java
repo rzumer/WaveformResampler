@@ -6,8 +6,8 @@ import gti310.tp2.audio.AudioProperties.AudioFormat;
 
 public class ResamplingFilter extends AudioFilter
 {
-	protected byte[] lastFrameProcessed; // Represents the last frame of the last segment processed with the filter, used for interpolation.
-	protected int decimationOffset; // Represents the number of frames to skip initially during decimation.
+	private byte[] lastFrameProcessed; // Represents the last frame of the last segment processed with the filter, used for interpolation.
+	private int decimationOffset; // Represents the number of frames to skip initially during decimation.
 	
 	public ResamplingFilter(int outSampleRate)
 	{
