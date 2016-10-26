@@ -1,10 +1,15 @@
-package gti310.tp2.audio;
+package audioresampler.audio;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
+/**
+ * A fast implementation of the resampling filter for linear resampling only.
+ * 
+ * @author Raphaël Zumer <rzumer@gmail.com>
+ */
 public class FastResamplingFilter extends ResamplingFilter
 {
 	private byte[] lastFrameProcessed; // Represents the last frame of the last segment processed with the filter, used for interpolation.
@@ -26,19 +31,23 @@ public class FastResamplingFilter extends ResamplingFilter
 		segmentOffset = 0;
 	}
 
+	// O(n) * O(1) = O(n)
 	@Override
 	public byte[] process(byte[] input)
 	{
-		if(outProperties.BitsPerSample > 16)
+		// 24-bit input generates garbage samples.
+		if(!validateInputParameters(0, 16))
 		{
-			//throw new UnsupportedOperationException();
+			throw new UnsupportedOperationException();
 		}
 		
 		if(outProperties.SampleRate == properties.SampleRate)
 		{
+			// No processing needed.
 			return input;
 		}
 		
+		// Initialization
 		int outSampleRate = outProperties.SampleRate;
 		int frameSize = properties.getFrameSize();
 		double decimationRate = (double)properties.SampleRate / outSampleRate;
@@ -47,7 +56,9 @@ public class FastResamplingFilter extends ResamplingFilter
 		inputBuffer.order(properties.ByteOrder);
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 		
+		// Iteration
 		int frameCount = 0;
+		// O(n) - Iterate through frames, dependent on n.
 		while(inputBuffer.remaining() > frameSize)
 		{
 			double framePointer = MathHelper.Round((double)segmentOffset + (frameCount * decimationRate), DecimalPlaces);
@@ -56,7 +67,8 @@ public class FastResamplingFilter extends ResamplingFilter
 			int leftFrameNumber = (int) Math.round(framePointer - weight);
 			int rightFrameNumber = leftFrameNumber + 1;
 			
-			// The while check is insufficient to ensure that both the new left frame and the right frame, if one is needed, are present in this segment.
+			// The while check is insufficient to ensure that the new left frame
+			// and the right frame, if one is needed, are present in this segment.
 			if(inputBuffer.limit() < (weight > 0 ? rightFrameNumber : leftFrameNumber) * frameSize + frameSize)
 			{
 				break;
@@ -69,6 +81,7 @@ public class FastResamplingFilter extends ResamplingFilter
 			// Perform linear interpolation for each sample.
 			int[] interpolatedSamples = new int[leftSamples.length];
 			
+			// O(1) - Iterate through channels, independent from n.
 			for(int channel = 0; channel < leftSamples.length; channel++)
 			{
 				interpolatedSamples[channel] = weight > 0 ? MathHelper.InterpolateLinear(leftSamples[channel], rightSamples[channel], ((weight + 1) % 1)) : leftSamples[channel];
@@ -110,12 +123,14 @@ public class FastResamplingFilter extends ResamplingFilter
 			inputBuffer.position(Math.max(leftFrameNumber * frameSize, 0));
 		}
 		
+		// Return
 		lastFrameProcessed = Arrays.copyOfRange(input, input.length - frameSize, input.length);
 		segmentOffset -= MathHelper.Round(((input.length / (decimationRate * frameSize) - (frameCount))) * decimationRate, 6);
 		
 		return outputStream.toByteArray();
 	}
 	
+	// O(1)
 	// Reads the contents of a frame into an integer per channel value, used for processing.
 	private int[] readFrameSamples(ByteBuffer buffer, int frameNumber)
 	{

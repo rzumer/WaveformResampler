@@ -1,7 +1,13 @@
-package gti310.tp2.audio;
+package audioresampler.audio;
 
 import java.nio.ByteOrder;
 
+/**
+ * Encapsulates a set of properties used to analyze
+ * and process audio data.
+ * 
+ * @author Raphaël Zumer <rzumer@gmail.com>
+ */
 public class AudioProperties
 {
 	public static enum AudioFormat

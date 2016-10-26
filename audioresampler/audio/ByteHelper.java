@@ -1,9 +1,15 @@
-package gti310.tp2.audio;
+package audioresampler.audio;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+/**
+ * Provides some static methods for common operations
+ * on bytes and byte arrays.
+ * 
+ * @author Raphaël Zumer <rzumer@gmail.com>
+ */
 final class ByteHelper 
 {
 	public static int GetIntFromBytes(byte[] data, ByteOrder byteOrder)

@@ -1,11 +1,12 @@
-package gti310.tp2;
+package audioresampler;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
-import gti310.tp2.audio.*;
-import gti310.tp2.io.*;
+import audioresampler.audio.*;
+import audioresampler.audio.FastResamplingFilter;
+import audioresampler.io.*;
 
 public class Application {
 
@@ -50,14 +51,22 @@ public class Application {
 			
 			System.out.println(String.format("Done (%.2f seconds)", (double)processingTime / 1000));
 			
-		} catch (FileNotFoundException e) {
-			System.err.println("File Access Error");
-		} catch (HeaderFormatException e) {
-			System.err.println("Invalid Input");
-		} catch (UnsupportedFormatException e) {
-			System.err.println("Unsupported Input");
-		} catch (IOException e) {
-			System.err.println("I/O Error");
+		}
+		catch (FileNotFoundException e)
+		{
+			System.err.println("File Access Error: " + e);
+		}
+		catch (HeaderFormatException e)
+		{
+			System.err.println("Invalid Input: " + e);
+		}
+		catch (UnsupportedFormatException e)
+		{
+			System.err.println("Unsupported Input: " + e);
+		}
+		catch (IOException e)
+		{
+			System.err.println("I/O Error: " + e);
 		}
 	}
 }

@@ -1,4 +1,4 @@
-package gti310.tp2.io;
+package audioresampler.io;
 
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
@@ -11,7 +11,7 @@ import java.io.IOException;
  * sequential order to a caller. When the data reaches the end-of-file marker,
  * it will return nothing.
  * 
- * @author Fran�ois Caron <francois.caron.7@ens.etsmtl.ca>
+ * @author François Caron <francois.caron.7@ens.etsmtl.ca>; Raphaël Zumer <rzumer@gmail.com>
  */
 public class FileSource {
 	
@@ -19,19 +19,22 @@ public class FileSource {
 	private DataInputStream _reader;
 
 	/**
-	 * Create a new FileSource. The instanciation will be cancelled if the
+	 * Create a new FileSource. The instantiation will be cancelled if the
 	 * specified path is not valid.
 	 * 
 	 * @param location The complete path to the file
 	 * @throws FileNotFoundException If the path does not lead to a real file.
 	 */
 	public FileSource(String location) throws FileNotFoundException {
-		try {
+		try
+		{
 			/* open the handler on the specified file */
 			_reader = new DataInputStream(
 						new BufferedInputStream(
 							new FileInputStream(location)));
-		} catch (FileNotFoundException e) {
+		}
+		catch (FileNotFoundException e)
+		{
 			/* the path is not valid */
 			throw e;
 		}
@@ -41,10 +44,13 @@ public class FileSource {
 	 * Unreference the file and close it cleanly.
 	 */
 	public void close() {
-		try {
+		try
+		{
 			/* close the handler */
 			_reader.close();
-		} catch (IOException e) {
+		}
+		catch (IOException e)
+		{
 			/* something went wrong */
 		}
 	}
@@ -58,7 +64,8 @@ public class FileSource {
 	 * @return An array of bytes read in the file.
 	 */
 	public byte[] pop(int size) {
-		try {
+		try
+		{
 			/* create a new byte array for the number of bytes asked */
 			byte[] buffer = new byte[size];
 			
@@ -67,16 +74,21 @@ public class FileSource {
 			_reader.read(buffer);
 			/* return what was read */
 			return buffer;
-		} catch (IOException e) {
+		}
+		catch (IOException e)
+		{
 			/* something went wrong, or EOF reached */
 			return null;
 		}
 	}
 	
-	public int bytesRemaining() {
-		try {
+	public int getBytesRemaining() {
+		try
+		{
 			return _reader.available();
-		} catch (IOException e) {
+		}
+		catch (IOException e)
+		{
 			return 0;
 		}
 	}

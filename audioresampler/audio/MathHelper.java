@@ -1,8 +1,13 @@
-package gti310.tp2.audio;
+package audioresampler.audio;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
+/**
+ * Provides some static methods for common math operations.
+ * 
+ * @author Raphaël Zumer <rzumer@gmail.com>
+ */
 final class MathHelper
 {
 	public static int LeastCommonMultiple(int a, int b)

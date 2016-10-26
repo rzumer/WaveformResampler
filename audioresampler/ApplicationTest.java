@@ -1,4 +1,4 @@
-package gti310.tp2;
+package audioresampler;
 
 import static org.junit.Assert.*;
 
@@ -7,15 +7,15 @@ import java.io.FileNotFoundException;
 
 import org.junit.Test;
 
-import gti310.tp2.audio.AudioController;
-import gti310.tp2.audio.AudioFilter;
-import gti310.tp2.audio.FastResamplingFilter;
-import gti310.tp2.audio.HeaderFormatException;
-import gti310.tp2.audio.ResamplingFilter;
-import gti310.tp2.audio.UnsupportedFormatException;
-import gti310.tp2.audio.WaveController;
-import gti310.tp2.io.FileSink;
-import gti310.tp2.io.FileSource;
+import audioresampler.audio.AudioController;
+import audioresampler.audio.HeaderFormatException;
+import audioresampler.audio.UnsupportedFormatException;
+import audioresampler.audio.WaveController;
+import audioresampler.audio.AudioFilter;
+import audioresampler.audio.FastResamplingFilter;
+import audioresampler.audio.ResamplingFilter;
+import audioresampler.io.FileSink;
+import audioresampler.io.FileSource;
 
 public class ApplicationTest {	
 	@Test

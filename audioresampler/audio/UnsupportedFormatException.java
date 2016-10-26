@@ -1,4 +1,4 @@
-package gti310.tp2.audio;
+package audioresampler.audio;
 
 public class UnsupportedFormatException extends Exception
 {

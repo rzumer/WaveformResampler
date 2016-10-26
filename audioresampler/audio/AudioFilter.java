@@ -1,15 +1,10 @@
-package gti310.tp2.audio;
+package audioresampler.audio;
 
 /**
- * An AudioFilter object will modify the input data and produce new values.
- * Each AudioFilter will specify its data source and data sink. Sources and
- * Sinks are not required : the filter may produce random data, or receive
- * data change it and do nothing with it afterwards.
+ * Represents a filter able to accept input audio data,
+ * performs deterministic processing on it, and returns the output.
  * 
- * For more information on WAVE file format visit :
- * http://ccrma.stanford.edu/courses/422/projects/WaveFormat/
- * 
- * @author François Caron <francois.caron.7@ens.etsmtl.ca>
+ * @author RaphaÃ«l Zumer <rzumer@gmail.com>
  */
 public abstract class AudioFilter
 {

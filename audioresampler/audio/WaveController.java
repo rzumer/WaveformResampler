@@ -1,4 +1,4 @@
-package gti310.tp2.audio;
+package audioresampler.audio;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -10,9 +10,10 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 
-import gti310.tp2.audio.AudioProperties.AudioFormat;
-import gti310.tp2.io.FileSink;
-import gti310.tp2.io.FileSource;
+import audioresampler.audio.AudioProperties.AudioFormat;
+import audioresampler.audio.AudioFilter;
+import audioresampler.io.FileSink;
+import audioresampler.io.FileSource;
 
 public class WaveController extends AudioController
 {
@@ -59,6 +60,7 @@ public class WaveController extends AudioController
 		}
 	}
 	
+	// O(n)
 	private byte[] popHeader() throws IOException, HeaderFormatException
 	{
 		// Main header buffer for iterating through fields
@@ -68,7 +70,7 @@ public class WaveController extends AudioController
 		
 		do
 		{
-			if(fileSource.bytesRemaining() < 4)
+			if(fileSource.getBytesRemaining() < 4)
 			{
 				throw new HeaderFormatException();
 			}
@@ -86,6 +88,7 @@ public class WaveController extends AudioController
 		return headerStream.toByteArray();
 	}
 	
+	// O(n)
 	private boolean validateHeader(byte[] header) throws UnsupportedEncodingException, UnsupportedFormatException
 	{
 		// Main header buffer for iterating through fields
@@ -250,9 +253,9 @@ public class WaveController extends AudioController
 		// Apply the filter by 1 second segments.
 		byte[] bytesPopped = null;
 		
-		while(fileSource.bytesRemaining() > 0)
+		while(fileSource.getBytesRemaining() > 0)
 		{
-			bytesPopped = fileSource.pop(Math.min(fileSource.bytesRemaining(), properties.getFrameSize() * properties.SampleRate));
+			bytesPopped = fileSource.pop(Math.min(fileSource.getBytesRemaining(), properties.getFrameSize() * properties.SampleRate));
 			
 			byte[] bytesToPush = filter.process(bytesPopped);
 			fileSink.push(bytesToPush);
@@ -266,6 +269,7 @@ public class WaveController extends AudioController
 		properties = filter.getOutputProperties();
 	}
 	
+	// O(n)
 	@Override
 	public void saveToFile(String outputFilePath)
 	{
@@ -304,6 +308,7 @@ public class WaveController extends AudioController
 		}
 	}
 	
+	// O(1)
 	private byte[] GenerateFileSinkHeader()
 	{
 		byte[] header = new byte[44];

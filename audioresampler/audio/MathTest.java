@@ -1,13 +1,14 @@
-package gti310.tp2.audio;
+package audioresampler.audio;
 
 import static org.junit.Assert.*;
 
 import org.junit.Test;
 
-public class MathTest {
-
+public class MathTest
+{
 	@Test
-	public void test() {
+	public void test()
+	{
 		int lcm = MathHelper.LeastCommonMultiple(44100, 8000);
 		assertEquals(lcm, 3528000);
 		
@@ -17,5 +18,4 @@ public class MathTest {
 		lcm = MathHelper.LeastCommonMultiple(48000, 44000);
 		assertEquals(lcm, 528000);
 	}
-
 }

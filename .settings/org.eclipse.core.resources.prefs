@@ -1,0 +1,9 @@
+eclipse.preferences.version=1
+encoding//audioresampler/audio/AudioFilter.java=UTF-8
+encoding//audioresampler/audio/AudioProperties.java=UTF-8
+encoding//audioresampler/audio/ByteHelper.java=UTF-8
+encoding//audioresampler/audio/FastResamplingFilter.java=UTF-8
+encoding//audioresampler/audio/MathHelper.java=UTF-8
+encoding//audioresampler/audio/ResamplingFilter.java=UTF-8
+encoding//audioresampler/io/FileSink.java=UTF-8
+encoding//audioresampler/io/FileSource.java=UTF-8

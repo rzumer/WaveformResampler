@@ -1,9 +1,14 @@
-package gti310.tp2.audio;
+package audioresampler.audio;
 
 import java.util.Arrays;
 
-import gti310.tp2.audio.AudioProperties.AudioFormat;
+import audioresampler.audio.AudioProperties.AudioFormat;
 
+/**
+ * A three-step resampling filter which pads, interpolates and decimates audio data.
+ * 
+ * @author Raphaël Zumer <rzumer@gmail.com>
+ */
 public class ResamplingFilter extends AudioFilter
 {
 	private byte[] lastFrameProcessed; // Represents the last frame of the last segment processed with the filter, used for interpolation.
@@ -39,33 +44,16 @@ public class ResamplingFilter extends AudioFilter
 	@Override
 	public byte[] process(byte[] input)
 	{
-		if(outProperties.SampleRate <= 0)
+		// 24-bit input processing causes an array out of bounds exception.
+		if(!validateInputParameters(0, 16))
 		{
-			throw new IllegalArgumentException();	
-		}
-		
-		if(properties.Format != AudioFormat.WAVE_PCM)
-		{
-			try
-			{
-				throw new UnsupportedFormatException();
-			}
-			catch (UnsupportedFormatException e)
-			{
-				System.err.println("Unsupported Format");
-			}
+			throw new UnsupportedOperationException();
 		}
 		
 		if(outProperties.SampleRate == properties.SampleRate)
 		{
 			// No processing needed.
 			return input;
-		}
-		
-		if(outProperties.BitsPerSample > 16)
-		{
-			// 24-bit input processing causes an array out of bounds exception.
-			throw new UnsupportedOperationException();
 		}
 		
 		int outSampleRate = outProperties.SampleRate;
@@ -180,5 +168,30 @@ public class ResamplingFilter extends AudioFilter
 		lastFrameProcessed = Arrays.copyOfRange(input, input.length - frameSize, input.length);
 		
 		return downsampledInput;
+	}
+	
+	protected boolean validateInputParameters(int maxSampleRate, int maxBitDepth)
+	{
+		if(outProperties.SampleRate <= 0)
+		{
+			return false;
+		}
+		
+		if(properties.Format != AudioFormat.WAVE_PCM)
+		{
+			return false;
+		}
+		
+		if(maxSampleRate > 0 && outProperties.SampleRate > maxSampleRate)
+		{
+			return false;
+		}
+		
+		if(maxBitDepth > 0 && outProperties.BitsPerSample > maxBitDepth)
+		{
+			return false;
+		}
+		
+		return true;
 	}
 }

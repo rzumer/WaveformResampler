@@ -1,7 +1,8 @@
-package gti310.tp2.audio;
+package audioresampler.audio;
 
-import gti310.tp2.io.FileSink;
-import gti310.tp2.io.FileSource;
+import audioresampler.audio.AudioFilter;
+import audioresampler.io.FileSink;
+import audioresampler.io.FileSource;
 
 public abstract class AudioController
 {
