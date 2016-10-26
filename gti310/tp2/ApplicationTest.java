@@ -8,6 +8,8 @@ import java.io.FileNotFoundException;
 import org.junit.Test;
 
 import gti310.tp2.audio.AudioController;
+import gti310.tp2.audio.AudioFilter;
+import gti310.tp2.audio.FastResamplingFilter;
 import gti310.tp2.audio.HeaderFormatException;
 import gti310.tp2.audio.ResamplingFilter;
 import gti310.tp2.audio.UnsupportedFormatException;
@@ -17,7 +19,18 @@ import gti310.tp2.io.FileSource;
 
 public class ApplicationTest {	
 	@Test
-	public void test()
+	public void testResampling()
+	{
+		test(new ResamplingFilter(8000));
+	}
+	
+	@Test
+	public void testFastResampling()
+	{
+		test(new FastResamplingFilter(8000));
+	}
+	
+	private void test(AudioFilter filter)
 	{
 		try
 		{
@@ -28,7 +41,7 @@ public class ApplicationTest {
 			FileSink output = new FileSink(OutputFileName);
 			
 			AudioController controller = new WaveController(input, output);
-			controller.applyFilter(new ResamplingFilter(8000));
+			controller.applyFilter(filter);
 			controller.close();
 			
 			File outputFile = new File(OutputFileName);
