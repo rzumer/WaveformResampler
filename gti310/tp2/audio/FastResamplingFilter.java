@@ -9,7 +9,7 @@ public class FastResamplingFilter extends ResamplingFilter
 {
 	private byte[] lastFrameProcessed; // Represents the last frame of the last segment processed with the filter, used for interpolation.
 	private double segmentOffset; // Used to balance the frame selection between segments.
-	private static int DecimalPlaces = 6;
+	private static int DecimalPlaces = 6; // Round weight and decimation rate to avoid floating point errors affecting frame selection
 	
 	public FastResamplingFilter(int outSampleRate)
 	{
@@ -111,7 +111,7 @@ public class FastResamplingFilter extends ResamplingFilter
 		}
 		
 		lastFrameProcessed = Arrays.copyOfRange(input, input.length - frameSize, input.length);
-		segmentOffset -= ((input.length / (decimationRate * frameSize) - (frameCount))) * decimationRate;
+		segmentOffset -= MathHelper.Round(((input.length / (decimationRate * frameSize) - (frameCount))) * decimationRate, 6);
 		
 		return outputStream.toByteArray();
 	}

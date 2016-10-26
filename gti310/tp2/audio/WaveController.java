@@ -282,6 +282,12 @@ public class WaveController extends AudioController
 				
 				fs.push(Arrays.copyOfRange(buffer, 0, bytesRead));
 			}
+		
+			// Add padding byte if the data length is odd.
+			if((fs.getBytesWritten() & 1) != 0)
+			{
+				fs.push(new byte[] { 0 });
+			}
 			
 			fis.close();
 			fs.close();
