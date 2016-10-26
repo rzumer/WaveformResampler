@@ -15,6 +15,8 @@ public class Application {
 	 */
 	public static void main(String args[])
 	{
+		long startTime = System.currentTimeMillis();
+		
 		if(args.length < 2)
 		{
 			System.err.println("Usage: AudioResampler <input> <output>");
@@ -32,9 +34,15 @@ public class Application {
 			FileSource input = new FileSource(inputFileName);
 			FileSink output = new FileSink(tempFile.getAbsolutePath());
 			
-			long startTime = System.currentTimeMillis();
-			
 			AudioController controller = new WaveController(input, output);
+			
+			// Only 44.1 kHz input files are supported.
+			if(controller.getProperties().SampleRate != 44100)
+			{
+				throw new UnsupportedFormatException();
+			}
+			
+			// Output at 8 kHz.
 			controller.applyFilter(new FastResamplingFilter(8000));
 			controller.saveToFile(outputFileName);
 			

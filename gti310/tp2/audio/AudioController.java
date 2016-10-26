@@ -23,6 +23,11 @@ public abstract class AudioController
 		initializeProperties();
 	}
 	
+	public AudioProperties getProperties()
+	{
+		return properties.copy();
+	}
+	
 	protected abstract void initializeProperties();
 	
 	public abstract void applyFilter(AudioFilter filter);
