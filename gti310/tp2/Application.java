@@ -13,7 +13,8 @@ public class Application {
 	 * Launch the application
 	 * @param args This parameter is ignored
 	 */
-	public static void main(String args[]) {
+	public static void main(String args[])
+	{
 		if(args.length < 2)
 		{
 			System.err.println("Usage: AudioResampler <input> <output>");
@@ -23,18 +24,23 @@ public class Application {
 		String inputFileName = args[0];
 		String outputFileName = args[1];
 		
-		try {
+		try
+		{
 			File tempFile = File.createTempFile(outputFileName, null);
 			tempFile.deleteOnExit();
 			
 			FileSource input = new FileSource(inputFileName);
 			FileSink output = new FileSink(tempFile.getAbsolutePath());
 			
+			long startTime = System.currentTimeMillis();
+			
 			AudioController controller = new WaveController(input, output);
 			controller.applyFilter(new FastResamplingFilter(8000));
 			controller.saveToFile(outputFileName);
 			
-			System.out.println("Done");
+			long processingTime = System.currentTimeMillis() - startTime;
+			
+			System.out.println(String.format("Done (%.2f seconds)", (double)processingTime / 1000));
 			
 		} catch (FileNotFoundException e) {
 			System.err.println("File Access Error");

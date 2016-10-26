@@ -242,6 +242,8 @@ public class WaveController extends AudioController
 			return;
 		}
 		
+		System.out.print("Applying " + filter.getClass().getSimpleName());
+		
 		// Set audio properties for the filter.
 		filter.setInputProperties(properties);
 		
@@ -254,7 +256,11 @@ public class WaveController extends AudioController
 			
 			byte[] bytesToPush = filter.process(bytesPopped);
 			fileSink.push(bytesToPush);
+			
+			System.out.print(".");
 		}
+		
+		System.out.println();
 		
 		// Update properties with the filter's output.
 		properties = filter.getOutputProperties();
