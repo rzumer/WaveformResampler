@@ -35,7 +35,7 @@ final class ByteHelper
 				// Bytes are sign extended and must be masked when packed into the integer.
 				if(byteOrder == ByteOrder.LITTLE_ENDIAN)
 				{
-					return ((buf[2] & 0xffff) << 16 | (buf[1] & 0xff) << 8 | (buf[0] & 0xff));					
+					return ((buf[2] & 0xffff) << 16 | (buf[1] & 0xff) << 8 | (buf[0] & 0xff));
 				}
 				
 				return (buf[0] & 0xffff) << 16 | (buf[1] & 0xff) << 8 | (buf[2] & 0xff);

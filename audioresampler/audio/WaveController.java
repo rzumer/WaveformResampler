@@ -252,14 +252,24 @@ public class WaveController extends AudioController
 		// Apply the filter by 1 second segments.
 		byte[] bytesPopped = null;
 		
-		while(fileSource.getBytesRemaining() > 0)
+		try
 		{
-			bytesPopped = fileSource.pop(Math.min(fileSource.getBytesRemaining(), properties.getFrameSize() * properties.SampleRate));
+			while(fileSource.getBytesRemaining() > 0)
+			{
+				bytesPopped = fileSource.pop(Math.min(fileSource.getBytesRemaining(), properties.getFrameSize() * properties.SampleRate));
+				
+				fileSink.push(filter.process(bytesPopped));
+				
+				System.out.print(".");
+			}
 			
-			byte[] bytesToPush = filter.process(bytesPopped);
-			fileSink.push(bytesToPush);
-			
-			System.out.print(".");
+			// Process one last time with no data to receive the final remaining samples when upsampling.
+			fileSink.push(filter.process(new byte[0]));
+		}
+		catch(Exception e)
+		{
+			System.out.println();
+			System.err.println("Filter Processing Error: " + e);
 		}
 		
 		System.out.println();
@@ -292,7 +302,7 @@ public class WaveController extends AudioController
 				
 				fs.push(Arrays.copyOfRange(buffer, 0, bytesRead));
 			}
-		
+			
 			// Add padding byte if the data length is odd.
 			if((fs.getBytesWritten() & 1) != 0)
 			{
