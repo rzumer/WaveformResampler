@@ -32,12 +32,13 @@ final class ByteHelper
 				byte[] buf = new byte[3];
 				dataBuffer.get(buf);
 				
+				// Bytes are sign extended and must be masked when packed into the integer.
 				if(byteOrder == ByteOrder.LITTLE_ENDIAN)
 				{
-					return buf[2] << 16 | buf[1] << 8 | buf[0];					
+					return ((buf[2] & 0xffff) << 16 | (buf[1] & 0xff) << 8 | (buf[0] & 0xff));					
 				}
 				
-				return buf[0] << 16 | buf[1] << 8 | buf[2];
+				return (buf[0] & 0xffff) << 16 | (buf[1] & 0xff) << 8 | (buf[2] & 0xff);
 			case 4:
 				return dataBuffer.getInt();
 			default:

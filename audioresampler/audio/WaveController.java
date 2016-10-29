@@ -3,7 +3,6 @@ package audioresampler.audio;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
@@ -278,7 +277,8 @@ public class WaveController extends AudioController
 		
 		byte[] header = GenerateFileSinkHeader();
 			
-		try {
+		try
+		{
 			FileInputStream fis = new FileInputStream(fileSink.getLocation());
 			FileSink fs = new FileSink(outputFilePath);
 			
@@ -301,10 +301,10 @@ public class WaveController extends AudioController
 			
 			fis.close();
 			fs.close();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
+		}
+		catch (IOException e)
+		{
+			System.err.println("File Save I/O Error: " + e);
 		}
 	}
 	

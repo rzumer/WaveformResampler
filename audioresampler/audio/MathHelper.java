@@ -27,18 +27,18 @@ final class MathHelper
 		return a;
 	}
 	
-	public static int InterpolateLinear(int a, int b, double d)
+	public static int InterpolateLinear(int a, int b, double distance)
 	{
-		if(d <= 0)
+		if(distance <= 0)
 		{
 			return a;
 		}
-		else if(d >= 1)
+		else if(distance >= 1)
 		{
 			return b;
 		}
 		
-		return (int) Math.round(a + ((double)(b - a) * d));
+		return (int) Math.round(a + ((b - a) * distance));
 	}
 	
 	public static double Round(double value, int decimalPlaces)

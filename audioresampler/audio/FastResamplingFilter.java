@@ -35,8 +35,8 @@ public class FastResamplingFilter extends ResamplingFilter
 	@Override
 	public byte[] process(byte[] input)
 	{
-		// 24-bit input generates garbage samples.
-		if(!validateInputParameters(0, 16))
+		// 32-bit input is not yet supported.
+		if(!validateInputParameters(0, 24))
 		{
 			throw new UnsupportedOperationException();
 		}
