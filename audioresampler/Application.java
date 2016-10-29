@@ -18,14 +18,15 @@ public class Application {
 	{
 		long startTime = System.currentTimeMillis();
 		
-		if(args.length < 2)
+		if(args.length < 3)
 		{
-			System.err.println("Usage: AudioResampler <input> <output>");
+			System.err.println("Usage: AudioResampler <input> <output> <sample_rate>");
 			return;
 		}
 		
 		String inputFileName = args[0];
 		String outputFileName = args[1];
+		int sampleRate = Integer.parseInt(args[2]);
 		
 		try
 		{
@@ -37,14 +38,7 @@ public class Application {
 			
 			AudioController controller = new WaveController(input, output);
 			
-			// Only 44.1 kHz input files are supported.
-			if(controller.getProperties().SampleRate != 44100)
-			{
-				throw new UnsupportedFormatException();
-			}
-			
-			// Output at 8 kHz.
-			controller.applyFilter(new FastResamplingFilter(8000));
+			controller.applyFilter(new FastResamplingFilter(sampleRate));
 			controller.saveToFile(outputFileName);
 			
 			long processingTime = System.currentTimeMillis() - startTime;
