@@ -20,7 +20,6 @@ import audioresampler.io.FileSource;
 
 public class ApplicationTest
 {
-	@SuppressWarnings("deprecation")
 	@Test
 	public void testDownsampling()
 	{
