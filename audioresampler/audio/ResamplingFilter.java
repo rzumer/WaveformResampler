@@ -40,7 +40,11 @@ public class ResamplingFilter extends AudioFilter
 		decimationOffset = 0;
 	}
 
+	/**
+	 * @deprecated Use {@link FastResamplingFilter} instead.
+	 */
 	@Override
+	@Deprecated
 	public byte[] process(byte[] input)
 	{
 		// 24-bit input processing causes an array out of bounds exception.
